@@ -1,0 +1,15 @@
+[build]
+  # Carpeta donde se encuentra el código de la aplicación
+  base = "frontend"
+  
+  # Comando para construir la aplicación
+  command = "npm run build"
+  
+  # Carpeta que contiene los archivos estáticos listos para producción
+  publish = "dist"
+
+[[redirects]]
+  # Para manejar el enrutamiento de React (Single Page Application)
+  from = "/*"
+  to = "/index.html"
+  status = 200
