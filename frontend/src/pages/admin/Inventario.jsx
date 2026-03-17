@@ -297,7 +297,7 @@ const Inventario = () => {
                     </div>
                     <div>
                         <h2 className="text-2xl font-black text-slate-800 tracking-tight">Módulo de Equipos</h2>
-                        <p className="text-slate-500 text-sm font-medium">Hardware, Mobiliario y Estaciones de Trabajo.</p>
+                        <p className="text-slate-500 text-sm font-medium">Alta de equipos e inventario.</p>
                     </div>
                 </div>
             </div>

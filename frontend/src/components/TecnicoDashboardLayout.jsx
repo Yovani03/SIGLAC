@@ -6,6 +6,8 @@ import {
     LogOut, Menu, X, ChevronRight, User,
     Laptop, Layout
 } from 'lucide-react';
+import OnlineIndicator from './OnlineIndicator';
+import NotificationDropdown from './NotificationDropdown';
 
 const TecnicoDashboardLayout = ({ children }) => {
     const { user, logout } = useAuth();
@@ -102,6 +104,11 @@ const TecnicoDashboardLayout = ({ children }) => {
                         <span className="text-slate-800 font-bold capitalize">
                             {menuItems.find(i => i.path === location.pathname)?.name || 'Inicio'}
                         </span>
+                    </div>
+
+                    <div className="flex items-center space-x-6">
+                        <OnlineIndicator />
+                        <NotificationDropdown userRole="TECNICO" />
                     </div>
                 </header>
 

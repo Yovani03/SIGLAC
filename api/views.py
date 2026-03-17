@@ -344,7 +344,7 @@ class ReporteFalloViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def me(self, request):
-        reportes = ReporteFallo.objects.filter(usuario_reporta=request.user)
+        reportes = ReporteFallo.objects.filter(usuario_reporta=request.user).order_by('-fecha_reporte')
         serializer = self.get_serializer(reportes, many=True)
         return Response(serializer.data)
 
@@ -448,34 +448,31 @@ def reportes_estadisticos(request):
         rol_nombre = user.rol.nombre_rol.lower() if user.rol else ''
         is_admin = rol_nombre in ['admin', 'administrador']
 
-        # 1. Top failing equipment
-        hw_failures = ReporteFallo.objects.filter(mobiliario__isnull=False).values(
-            'mobiliario__serie', 'mobiliario__marca', 'mobiliario__modelo', 'mobiliario__laboratorio__nombre'
-        ).annotate(count=Count('id_reporte')).order_by('-count')[:5]
-        
-        pc_failures = ReporteFallo.objects.filter(equipo_computo__isnull=False).values(
-            'equipo_computo__serie', 'equipo_computo__marca', 'equipo_computo__modelo', 'equipo_computo__laboratorio__nombre'
-        ).annotate(count=Count('id_reporte')).order_by('-count')[:5]
+        # 1. Active Failures (Current faults with details)
+        active_reports = ReporteFallo.objects.filter(~Q(estado='RESUELTO')).select_related('mobiliario', 'equipo_computo').order_by('-fecha_reporte')[:5]
         
         failures_summary = []
-        for f in hw_failures:
+        for r in active_reports:
+            if r.equipo_computo:
+                eq = r.equipo_computo
+                item_name = eq.serie or eq.marca or 'PC-Inventario'
+                lab = eq.laboratorio.nombre if hasattr(eq, 'laboratorio') and eq.laboratorio else 'Sin Lab'
+            elif r.mobiliario:
+                mob = r.mobiliario
+                item_name = mob.serie or mob.marca or 'Mobiliario'
+                lab = mob.laboratorio.nombre if hasattr(mob, 'laboratorio') and mob.laboratorio else 'Sin Lab'
+            else:
+                item_name = 'General / Desconocido'
+                lab = 'Sin Lab'
+
             failures_summary.append({
-                'id': f['mobiliario__serie'] or f['mobiliario__marca'] or 'Inventario', 
-                'type': 'Mobiliario', 
-                'count': f['count'],
-                'modelo': f['mobiliario__modelo'] or 'Genérico',
-                'lab': f['mobiliario__laboratorio__nombre'] or 'Sin Lab'
+                'id': r.id_reporte,
+                'name': item_name,
+                'lab': lab,
+                'descripcion': r.detalle_problema[:60] + '...' if r.detalle_problema and len(r.detalle_problema) > 60 else (r.detalle_problema or 'Sin descripción'),
+                'fecha': r.fecha_reporte.strftime('%d/%m/%Y'),
+                'estado': r.estado
             })
-        for f in pc_failures:
-            failures_summary.append({
-                'id': f['equipo_computo__serie'] or f['equipo_computo__marca'] or 'PC-Inventario', 
-                'type': 'PC', 
-                'count': f['count'],
-                'modelo': f['equipo_computo__modelo'] or 'Equipo',
-                'lab': f['equipo_computo__laboratorio__nombre'] or 'Sin Lab'
-            })
-        
-        failures_summary = sorted(failures_summary, key=lambda x: x['count'], reverse=True)[:5]
 
         # 2. Maintenance Stats (Filtered by docente labs if not admin)
         if not is_admin:

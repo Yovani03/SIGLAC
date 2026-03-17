@@ -24,7 +24,7 @@ const DocenteDashboard = () => {
 
                 // Fetch recent reports
                 const repResponse = await api.get('/reportes-fallos/me/');
-                setReportes(repResponse.data.slice(0, 5));
+                setReportes(repResponse.data);
             } catch (error) {
                 console.error("Error fetching dashboard data", error);
             } finally {
@@ -77,7 +77,7 @@ const DocenteDashboard = () => {
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Estado hoy</span>
                     </div>
-                    <p className="text-3xl font-black text-slate-800">{reportes.filter(r => r.estado === 'PENDIENTE').length}</p>
+                    <p className="text-3xl font-black text-slate-800">{reportes.filter(r => r.estado !== 'RESUELTO').length}</p>
                     <p className="text-sm font-bold text-slate-500">Fallos pendientes</p>
                 </div>
 
@@ -131,15 +131,15 @@ const DocenteDashboard = () => {
                         <div className="p-4">
                             {reportes.length > 0 ? (
                                 <div className="divide-y divide-slate-50">
-                                    {reportes.map((reporte) => (
+                                    {reportes.slice(0, 5).map((reporte) => (
                                         <div
                                             key={reporte.id_reporte}
                                             onClick={() => navigate('/docente/reportes')}
                                             className="flex items-center p-5 hover:bg-slate-50 rounded-2xl transition-all cursor-pointer group"
                                         >
                                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mr-4 transition-colors ${reporte.estado === 'PENDIENTE' ? 'bg-amber-100 text-amber-600' :
-                                                    reporte.estado === 'RESUELTO' ? 'bg-emerald-100 text-emerald-600' :
-                                                        'bg-indigo-100 text-indigo-600'
+                                                reporte.estado === 'RESUELTO' ? 'bg-emerald-100 text-emerald-600' :
+                                                    'bg-indigo-100 text-indigo-600'
                                                 }`}>
                                                 <AlertCircle className="w-5 h-5" />
                                             </div>
@@ -147,8 +147,8 @@ const DocenteDashboard = () => {
                                                 <p className="text-sm font-bold text-slate-800 truncate">{reporte.detalle_problema}</p>
                                                 <div className="flex items-center mt-1 space-x-3">
                                                     <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${reporte.estado === 'PENDIENTE' ? 'bg-amber-50 text-amber-600' :
-                                                            reporte.estado === 'RESUELTO' ? 'bg-emerald-50 text-emerald-600' :
-                                                                'bg-indigo-50 text-indigo-600'
+                                                        reporte.estado === 'RESUELTO' ? 'bg-emerald-50 text-emerald-600' :
+                                                            'bg-indigo-50 text-indigo-600'
                                                         }`}>
                                                         {reporte.estado}
                                                     </span>
@@ -195,7 +195,7 @@ const DocenteDashboard = () => {
                         </div>
                     </div>
 
-                    {/* Today's Classes / Reservations */}
+                    {/* Today's Classes / Reservations - Oculto temporalmente
                     <div className="space-y-6">
                         <h3 className="text-xl font-black text-slate-800 flex items-center justify-between">
                             Programación para Hoy
@@ -231,6 +231,7 @@ const DocenteDashboard = () => {
                             </div>
                         )}
                     </div>
+                    */}
                 </div>
             </div>
         </div>

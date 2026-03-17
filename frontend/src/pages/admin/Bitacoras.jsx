@@ -268,6 +268,7 @@ const Bitacoras = () => {
                         <RefreshCw className={`w-5 h-5 text-slate-400 ${refreshing ? 'text-indigo-500' : ''}`} />
                     </button>
 
+                    {/* Botones ocultos temporalmente
                     <button
                         onClick={generatePDF}
                         disabled={bitacoras.length === 0}
@@ -281,14 +282,14 @@ const Bitacoras = () => {
                         <Download className="w-4 h-4" />
                         <span>Excel</span>
                     </button>
+                    */}
                 </div>
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
                     { label: 'Eventos Hoy', value: totalLogsToday, icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50', detail: 'Actividad del día' },
-                    { label: 'Usuarios Únicos', value: uniqueUsers, icon: User, color: 'text-indigo-600', bg: 'bg-indigo-50', detail: 'Colaboradores activos' },
                     { label: 'Registros Totales', value: bitacoras.length, icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-50', detail: 'Historial almacenado' },
                 ].map((stat, i) => (
                     <motion.div
@@ -325,6 +326,7 @@ const Bitacoras = () => {
                         />
                     </div>
 
+                    {/* Filtros ocultos temporalmente 
                     <div className="flex items-center space-x-4">
                         <div className="h-10 w-[1px] bg-slate-200 hidden lg:block mx-2"></div>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtrar por:</span>
@@ -336,6 +338,7 @@ const Bitacoras = () => {
                             ))}
                         </div>
                     </div>
+                    */}
                 </div>
 
                 {/* Table Layout */}
@@ -453,7 +456,7 @@ const Bitacoras = () => {
                     <div className="flex items-center space-x-3">
                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                         <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">
-                            Auditoría de Sistema Activa • {filteredLogs.length} Registros Visibles
+                            Registros Totales • {bitacoras.length}
                         </p>
                     </div>
                 </div>

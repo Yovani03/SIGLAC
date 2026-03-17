@@ -142,6 +142,7 @@ const TecnicoDashboard = () => {
                     </div>
                 </div>
 
+                {/* Manual de Usuario Técnico - Oculto temporalmente
                 <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group text-white">
                     <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-110 transition-transform duration-700">
                         <Monitor className="w-40 h-40" />
@@ -165,6 +166,7 @@ const TecnicoDashboard = () => {
                         </button>
                     </div>
                 </div>
+                */}
             </div>
         </div>
     );

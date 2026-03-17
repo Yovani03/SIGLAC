@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { jsPDF } from "jspdf";
+import autoTable from 'jspdf-autotable';
 
 const Reportes = () => {
     const [loading, setLoading] = useState(true);
@@ -27,6 +29,133 @@ const Reportes = () => {
         }
     };
 
+    const exportarInformePDF = () => {
+        if (!data) return;
+
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const primaryColor = [225, 29, 72]; // Rose-600
+        const accentColor = [79, 70, 229];  // Indigo-600
+        const secondaryColor = [100, 116, 139]; // Slate-500
+
+        // Header Design
+        doc.setFillColor(248, 250, 252);
+        doc.rect(0, 0, pageWidth, 60, 'F');
+
+        // Logo and Title
+        doc.setTextColor(30, 41, 59);
+        doc.setFontSize(28);
+        doc.setFont('helvetica', 'bold');
+        doc.text('SIGLAC', 15, 25);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text('SISTEMA DE GESTIÓN DE LABORATORIOS DE CÓMPUTO', 15, 32);
+
+        doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('INFORME ESTADÍSTICO DE RENDIMIENTO', 15, 42);
+
+        const reportDate = new Date().toLocaleString('es-MX');
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Fecha de Emisión: ${reportDate}`, pageWidth - 15, 25, { align: 'right' });
+        doc.text('Documento Oficial de Auditoría', pageWidth - 15, 32, { align: 'right' });
+
+        // Section 1: Kpis (Quick Stats)
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 41, 59);
+        doc.text('1. RESUMEN EJECUTIVO', 15, 75);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(15, 78, pageWidth - 15, 78);
+
+        const summaryStats = [
+            ['Indicador', 'Valor Actual', 'Descripción'],
+            ['Total de Fallos', `${data?.global_stats?.total || 0}`, 'Historial acumulado de reportes'],
+            ['Uso de Laboratorios', `${data?.lab_usage?.[0]?.horarios_count || 0} hrs/sem`, `Máximo: ${data?.lab_usage?.[0]?.nombre || 'N/A'}`],
+            ['Mantenimiento', `${data?.maintenance?.preventive || 0}`, 'Actividades preventivas realizadas'],
+            ['Estatus de Atención', `${data?.global_stats?.resolved || 0} Resueltos / ${data?.global_stats?.pending || 0} Pendientes`, 'Eficiencia de soporte técnico']
+        ];
+
+        autoTable(doc, {
+            startY: 85,
+            head: [summaryStats[0]],
+            body: summaryStats.slice(1),
+            theme: 'striped',
+            headStyles: { fillColor: accentColor, textColor: [255, 255, 255] },
+            styles: { fontSize: 10, cellPadding: 5 }
+        });
+
+        // Section 2: Use of Labs
+        let lastY = doc.lastAutoTable.finalY + 15;
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 41, 59);
+        doc.text('2. USO DE LABORATORIOS (ACTIVIDADES)', 15, lastY);
+        doc.line(15, lastY + 3, pageWidth - 15, lastY + 3);
+
+        const labsBody = data?.lab_usage?.sort((a, b) => b.horarios_count - a.horarios_count).map((l, i) => [
+            `#0${i + 1}`, l.nombre, `${l.horarios_count} Actividades`
+        ]) || [];
+
+        autoTable(doc, {
+            startY: lastY + 8,
+            head: [['Rango', 'Laboratorio', 'Nivel de Uso']],
+            body: labsBody,
+            theme: 'plain',
+            headStyles: { textColor: secondaryColor, fontStyle: 'bold' },
+            styles: { fontSize: 10, cellPadding: 3 },
+            columnStyles: { 0: { cellWidth: 20 }, 2: { fontStyle: 'bold', textColor: accentColor } }
+        });
+
+        // Section 3: Active Failures
+        lastY = doc.lastAutoTable.finalY + 15;
+
+        // Page break if needed
+        if (lastY > 230) {
+            doc.addPage();
+            lastY = 20;
+        }
+
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 41, 59);
+        doc.text('3. DETALLE DE FALLOS ACTUALES', 15, lastY);
+        doc.line(15, lastY + 3, pageWidth - 15, lastY + 3);
+
+        const fallosBody = data?.top_failures?.map(f => [f.fecha, f.name, f.lab, f.descripcion]) || [];
+
+        if (fallosBody.length > 0) {
+            autoTable(doc, {
+                startY: lastY + 8,
+                head: [['Fecha', 'Equipo', 'Laboratorio', 'Problema Reportado']],
+                body: fallosBody,
+                theme: 'grid',
+                headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+                styles: { fontSize: 9, cellPadding: 4 },
+                columnStyles: { 3: { cellWidth: 80 } }
+            });
+        } else {
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'italic');
+            doc.setTextColor(148, 163, 184);
+            doc.text("No se detectan fallos críticos activos en el sistema.", 15, lastY + 12);
+        }
+
+        // Footer
+        const finalPageHeight = doc.internal.pageSize.getHeight();
+        doc.setFontSize(8);
+        doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(15, finalPageHeight - 20, pageWidth - 15, finalPageHeight - 20);
+        doc.text('SIGLAC - Sistema de Gestión de Laboratorios • Reporte Automatizado', pageWidth / 2, finalPageHeight - 12, { align: 'center' });
+        doc.text(`Página ${doc.internal.getNumberOfPages()}`, pageWidth - 15, finalPageHeight - 12, { align: 'right' });
+
+        doc.save(`Informe_Estadistico_SIGLAC_${new Date().toISOString().split('T')[0]}.pdf`);
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -40,12 +169,12 @@ const Reportes = () => {
 
     const statsCards = [
         {
-            title: 'Equipos más fallados',
+            title: 'Total de fallos',
             icon: TrendingDown,
             color: 'text-rose-600',
             bg: 'bg-rose-50',
-            count: `${data?.top_failures?.[0]?.count || 0} fallos`,
-            detail: data?.top_failures?.[0]?.name || 'Ninguno'
+            count: `${data?.global_stats?.total || 0} fallos`,
+            detail: 'Reportes registrados'
         },
         {
             title: 'Uso de Labs',
@@ -73,24 +202,23 @@ const Reportes = () => {
         },
     ];
 
-    // Minimalist Custom Bar Chart Component
-    const MiniBarChart = ({ items }) => (
-        <div className="space-y-4 w-full">
+    // Active Failures List Component
+    const ActiveFailuresList = ({ items }) => (
+        <div className="space-y-3 w-full">
             {items.map((item, i) => (
-                <div key={i} className="space-y-1.5">
-                    <div className="flex justify-between items-end">
-                        <span className="text-[11px] font-black text-slate-800 uppercase tracking-tight truncate max-w-[150px]">
-                            {item.name}
-                        </span>
-                        <span className="text-[10px] font-black text-rose-500">{item.count} REPORTES</span>
+                <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm flex items-start space-x-4 hover:shadow-md transition-all">
+                    <div className="p-3 rounded-xl bg-rose-100/50 text-rose-500 shadow-inner flex-shrink-0">
+                        <AlertCircle className="w-5 h-5" />
                     </div>
-                    <div className="h-3 bg-slate-50 rounded-full overflow-hidden border border-slate-100 shadow-inner p-0.5">
-                        <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(item.count / items[0].count) * 100}%` }}
-                            transition={{ duration: 1, delay: i * 0.1 }}
-                            className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full shadow-sm"
-                        />
+                    <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-0.5">
+                            <h4 className="text-sm font-black text-slate-800 tracking-tight truncate pr-2">{item.name}</h4>
+                            <span className="text-[10px] font-black text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-100 whitespace-nowrap">{item.fecha}</span>
+                        </div>
+                        <p className="text-[11px] font-bold text-rose-600 mb-1 flex items-center">
+                            <Activity className="w-3 h-3 mr-1" /> {item.lab}
+                        </p>
+                        <p className="text-[11px] text-slate-500 font-medium leading-snug line-clamp-2">{item.descripcion}</p>
                     </div>
                 </div>
             ))}
@@ -144,7 +272,10 @@ const Reportes = () => {
                     >
                         <RefreshCw className={`w-5 h-5 text-slate-400 ${refreshing ? 'text-rose-500' : ''}`} />
                     </button>
-                    <button className="flex items-center space-x-3 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-800 shadow-xl shadow-slate-200 transition-all active:scale-95">
+                    <button
+                        onClick={exportarInformePDF}
+                        className="flex items-center space-x-3 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-800 shadow-xl shadow-slate-200 transition-all active:scale-95"
+                    >
                         <Download className="w-4 h-4" />
                         <span>Exportar Informe</span>
                     </button>
@@ -165,10 +296,12 @@ const Reportes = () => {
                             <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 shadow-inner`}>
                                 <stat.icon className="w-6 h-6" />
                             </div>
+                            {/* Etiqueta oculta temporalmente
                             <div className="bg-emerald-50 px-3 py-1.5 rounded-xl flex items-center">
                                 <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500 mr-1" />
                                 <span className="text-[10px] font-black text-emerald-600 tracking-tighter">SIGLAC LIVE</span>
                             </div>
+                            */}
                         </div>
                         <div className="relative z-10">
                             <h4 className="text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] mb-1">{stat.title}</h4>
@@ -184,8 +317,8 @@ const Reportes = () => {
             </div>
 
             {/* Main Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Equipment Failures Chart */}
+            <div className="grid grid-cols-1 lg:grid-cols-1 max-w-4xl mx-auto w-full gap-8">
+                {/* Active Failures List */}
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -195,15 +328,15 @@ const Reportes = () => {
                     <div className="flex items-center justify-between mb-10">
                         <div>
                             <h3 className="text-xl font-black text-slate-800 tracking-tight flex items-center">
-                                <TrendingDown className="w-6 h-6 mr-3 text-rose-500" /> Top Equipos Críticos
+                                <TrendingDown className="w-6 h-6 mr-3 text-rose-500" /> Fallos Actuales
                             </h3>
-                            <p className="text-slate-400 text-xs font-bold mt-1">Equipos con mayor número de incidencias reportadas.</p>
+                            <p className="text-slate-400 text-xs font-bold mt-1">Detalles de los equipos que están presentando incidencias en este momento.</p>
                         </div>
                     </div>
 
                     <div className="flex-1 flex flex-col justify-center">
                         {data?.top_failures?.length > 0 ? (
-                            <MiniBarChart items={data.top_failures} />
+                            <ActiveFailuresList items={data.top_failures} />
                         ) : (
                             <div className="h-64 flex flex-col items-center justify-center opacity-20 italic">
                                 <Monitor className="w-16 h-16 mb-4" />
@@ -212,12 +345,15 @@ const Reportes = () => {
                         )}
                     </div>
 
+                    {/* Botón oculto temporalmente
                     <button className="mt-10 pt-8 border-t border-slate-50 text-[10px] font-black text-rose-500 uppercase tracking-[0.25em] text-center hover:translate-y-[-2px] transition-all">
-                        Auditar Inventario Crítico
+                        Ir al Módulo de Reportes
                     </button>
+                    */}
                 </motion.div>
 
                 {/* Distribution Chart */}
+                {/* Chart oculto temporalmente
                 <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -264,16 +400,18 @@ const Reportes = () => {
                         </div>
                     </div>
                 </motion.div>
+                */}
             </div>
 
-            {/* Maintenance Section */}
+            {/* Entire Maintenance Section temporarily hidden
             <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
                 className="bg-slate-900 rounded-[3rem] p-12 text-white relative overflow-hidden shadow-2xl shadow-indigo-100"
             >
-                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div className="relative z-10 grid grid-cols-1 gap-12 items-center">
+                    {/* Sección oculta temporalmente
                     <div>
                         <div className="inline-flex items-center px-4 py-2 bg-white/10 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest mb-6 backdrop-blur-md">Resumen de Mantenimiento</div>
                         <h3 className="text-4xl font-black mb-6 leading-tight tracking-tighter">Eficiencia del <br /> Mantenimiento Preventivo</h3>
@@ -291,8 +429,9 @@ const Reportes = () => {
                             </div>
                         </div>
                     </div>
+                    * /}
 
-                    <div className="bg-white/5 p-8 rounded-[3rem] border border-white/10 backdrop-blur-sm">
+                    <div className="bg-white/5 p-8 rounded-[3rem] border border-white/10 backdrop-blur-sm max-w-3xl mx-auto w-full">
                         <h4 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center">
                             <Activity className="w-4 h-4 mr-2 text-indigo-400" /> Ranking Uso de Labs
                         </h4>
@@ -313,12 +452,13 @@ const Reportes = () => {
                     </div>
                 </div>
 
-                {/* Decorative Blobs */}
+                {/* Decorative Blobs * /}
                 <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl"></div>
                 <div className="absolute top-10 right-10 opacity-5 transform rotate-12">
                     <ClipboardList className="w-96 h-96" />
                 </div>
             </motion.div>
+            */}
         </div>
     );
 };

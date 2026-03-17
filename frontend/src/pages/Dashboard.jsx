@@ -87,9 +87,6 @@ const Dashboard = () => {
                             <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 shadow-inner`}>
                                 <stat.icon className="w-6 h-6" />
                             </div>
-                            <div className="p-1.5 px-3 bg-slate-50 rounded-xl text-[9px] font-black text-slate-400 flex items-center border border-slate-100 shadow-sm">
-                                <TrendingUp className="w-3 h-3 mr-1 text-emerald-500" /> +12%
-                            </div>
                         </div>
                         <div className="relative z-10">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{stat.name}</p>
@@ -112,14 +109,14 @@ const Dashboard = () => {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="lg:col-span-2 bg-indigo-600 rounded-[3rem] p-12 text-white relative overflow-hidden shadow-2xl shadow-indigo-100 group"
+                    className="lg:col-span-3 bg-indigo-600 rounded-[3rem] p-12 text-white relative overflow-hidden shadow-2xl shadow-indigo-100 group"
                 >
                     <div className="relative z-10 h-full flex flex-col justify-between">
                         <div>
-                            <div className="bg-white/10 w-fit px-4 py-1.5 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest mb-6 backdrop-blur-md">Estado del Ciclo Escolar</div>
-                            <h3 className="text-4xl font-black mb-6 leading-tight tracking-tighter">Métricas de Rendimiento <br /> y Uso de Laboratorios</h3>
+                            <div className="bg-white/10 w-fit px-4 py-1.5 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest mb-6 backdrop-blur-md">Reportes y Estadísticas</div>
+                            <h3 className="text-4xl font-black mb-6 leading-tight tracking-tighter">Rendimiento de los <br /> Laboratorios</h3>
                             <p className="text-indigo-100 text-base max-w-md mb-10 font-medium leading-relaxed">
-                                El sistema ha registrado un incremento del 15% en el uso de Laboratorios de Cómputo durante este cuatrimestre. Revisa las tendencias detalladas.
+                                Supervisa el estado y rendimiento de los equipos. Revisa los reportes de incidentes, resoluciones y funcionamiento general del sistema técnico.
                             </p>
                         </div>
                         <div className="flex space-x-5">
@@ -128,9 +125,6 @@ const Dashboard = () => {
                                 className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-900/10 hover:shadow-white/20 hover:scale-105 active:scale-95 transition-all"
                             >
                                 Ver Estadísticas
-                            </button>
-                            <button className="bg-indigo-500/30 text-white border border-indigo-400/30 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-500/50 hover:scale-105 active:scale-95 transition-all">
-                                Descargar Informe PDF
                             </button>
                         </div>
                     </div>
@@ -141,6 +135,8 @@ const Dashboard = () => {
                     </div>
                 </motion.div>
 
+                {/* 
+                Historial Reciente (Temporalmente inactivo)
                 <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -184,7 +180,8 @@ const Dashboard = () => {
                         <span>Ver Bitácora Completa</span>
                         <ArrowRight className="w-4 h-4 ml-2 group-hover/all:translate-x-1 transition-transform" />
                     </button>
-                </motion.div>
+                </motion.div> 
+                */}
             </div>
         </div>
     );

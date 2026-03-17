@@ -244,9 +244,9 @@ const ReportesDocente = () => {
                                             <div className="flex flex-col">
                                                 <span className="text-xs font-black text-indigo-600 mb-1 flex items-center">
                                                     {reporte.equipo_computo ? <Cpu className="w-3 h-3 mr-1" /> : <Box className="w-3 h-3 mr-1" />}
-                                                    {reporte.equipo_computo || reporte.mobiliario}
+                                                    {reporte.laboratorio_nombre || "General"}
                                                 </span>
-                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{reporte.mobiliario_detalle || "PC - " + (reporte.equipo_computo || "")}</span>
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{reporte.mobiliario_detalle || "N/A"}</span>
                                             </div>
                                         </td>
                                         <td className="p-8">

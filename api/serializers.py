@@ -150,7 +150,8 @@ class MantenimientoSerializer(serializers.ModelSerializer):
 
 class ReporteFalloSerializer(serializers.ModelSerializer):
     usuario_reporta_nombre = serializers.CharField(source='usuario_reporta.nombre', read_only=True)
-    mobiliario_detalle = serializers.CharField(source='mobiliario.__str__', read_only=True)
+    mobiliario_detalle = serializers.SerializerMethodField()
+    laboratorio_nombre = serializers.SerializerMethodField()
     equipo_serie = serializers.SerializerMethodField()
     equipo_marca = serializers.SerializerMethodField()
     equipo_modelo = serializers.SerializerMethodField()
@@ -159,6 +160,20 @@ class ReporteFalloSerializer(serializers.ModelSerializer):
         model = ReporteFallo
         fields = '__all__'
         read_only_fields = ['usuario_reporta']
+
+    def get_mobiliario_detalle(self, obj):
+        if obj.mobiliario:
+            return str(obj.mobiliario)
+        if obj.equipo_computo:
+            return str(obj.equipo_computo)
+        return "N/A"
+
+    def get_laboratorio_nombre(self, obj):
+        if obj.equipo_computo and obj.equipo_computo.laboratorio:
+            return obj.equipo_computo.laboratorio.nombre
+        if obj.mobiliario and obj.mobiliario.laboratorio:
+            return obj.mobiliario.laboratorio.nombre
+        return "N/A"
 
     def get_equipo_serie(self, obj):
         if obj.equipo_computo:
@@ -192,8 +207,8 @@ class BitacoraSerializer(serializers.ModelSerializer):
 
 class AsignacionEquipoSerializer(serializers.ModelSerializer):
     alumno_nombre = serializers.SerializerMethodField()
-    mobiliario_detalle = serializers.CharField(source='mobiliario.__str__', read_only=True)
-    equipo_detalle = serializers.CharField(source='equipo_computo.__str__', read_only=True)
+    mobiliario_detalle = serializers.SerializerMethodField()
+    equipo_detalle = serializers.SerializerMethodField()
 
     class Meta:
         model = AsignacionEquipo
@@ -201,6 +216,12 @@ class AsignacionEquipoSerializer(serializers.ModelSerializer):
     
     def get_alumno_nombre(self, obj):
         return f"{obj.alumno.nombre} {obj.alumno.apellido_paterno}"
+
+    def get_mobiliario_detalle(self, obj):
+        return str(obj.mobiliario) if obj.mobiliario else "N/A"
+
+    def get_equipo_detalle(self, obj):
+        return str(obj.equipo_computo) if obj.equipo_computo else "N/A"
 
 class AsistenciaSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.CharField(source='usuario.nombre', read_only=True)

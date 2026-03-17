@@ -258,8 +258,8 @@ const EstadisticasDocente = () => {
                 </div>
             </div>
 
+            {/* Historial de Mantenimiento - Oculto temporalmente
             <div className="grid grid-cols-1 gap-8">
-                {/* Historial de Mantenimiento */}
                 <button
                     onClick={() => setShowMaintModal(true)}
                     className="w-full text-left bg-slate-900 rounded-[3rem] p-10 text-white space-y-8 shadow-2xl shadow-slate-200 transition-all hover:ring-4 hover:ring-indigo-500/30 group"
@@ -288,6 +288,7 @@ const EstadisticasDocente = () => {
                     </div>
                 </button>
             </div>
+            */}
 
             {/* Maintenance Detail Modal */}
             <AnimatePresence>

@@ -216,9 +216,9 @@ const ReportesTecnico = () => {
                 <div>
                     <div className="flex items-center space-x-3 text-rose-600 mb-4">
                         <AlertCircle className="w-8 h-8" />
-                        <h2 className="text-4xl font-black text-slate-800 tracking-tighter">Workflow de Reportes</h2>
+                        <h2 className="text-4xl font-black text-slate-800 tracking-tighter">Atención de Reportes</h2>
                     </div>
-                    <p className="text-slate-500 font-bold max-w-lg">Gestiona el ciclo de vida de los fallos técnicos paso a paso, desde la recepción hasta la resolución definitiva.</p>
+                    <p className="text-slate-500 font-bold max-w-lg">Gestiona y resuelve los reportes de fallas técnicas del sistema.</p>
                 </div>
 
                 {/* Search in header area */}

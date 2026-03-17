@@ -6,6 +6,8 @@ import {
     LogOut, Settings, Bell, Menu, X, ChevronRight, User, Key,
     Laptop, Clock, ClipboardList, Users, BarChart3
 } from 'lucide-react';
+import OnlineIndicator from './OnlineIndicator';
+import NotificationDropdown from './NotificationDropdown';
 
 const DocenteDashboardLayout = ({ children }) => {
     const { user, logout } = useAuth();
@@ -108,10 +110,8 @@ const DocenteDashboardLayout = ({ children }) => {
                     </div>
 
                     <div className="flex items-center space-x-6">
-                        <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all border border-slate-100 relative group">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-indigo-500 rounded-full border-2 border-white"></span>
-                        </button>
+                        <OnlineIndicator />
+                        <NotificationDropdown userRole="DOCENTE" />
                     </div>
                 </header>
 
