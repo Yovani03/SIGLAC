@@ -25,14 +25,14 @@ const Login = () => {
     };
 
     return (
-        <div className="bg-[url('./public/bg-login2.jpg')] bg-cover bg-center min-hscreen flex items-center justify-center">
+        <div className="bg-[url('/bg-login2.jpg')] bg-cover bg-center min-h-screen flex items-center justify-center">
             <div className="min-h-screen flex items-center justify-center px-4 ">
             
                 
                 <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 ">
                     <div className="text-center mb-4">
                         
-                        <img src="./public/logo_SIGLAC.png" alt="SIGLAC Logo"className="mx-auto w-94 mb-8"/>
+                        <img src="/logo_SIGLAC.png" alt="SIGLAC Logo"className="mx-auto w-64 mb-8"/>
                         <p className="text-gray-600 mt-2">Bienvenido</p>
                     </div>
 
