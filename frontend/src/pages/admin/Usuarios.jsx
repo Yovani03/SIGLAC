@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Edit2, Trash2, Plus, Users, UserPlus, X, CheckCircle, Search, Save, Key, XCircle } from 'lucide-react';
+import { toast, Toaster } from 'react-hot-toast';
+import Swal from 'sweetalert2';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import Button from '../../components/common/Button';
 import api from '../../services/api';
-import {
-    Users, UserPlus, Edit2, Trash2, Key, CheckCircle, XCircle
-} from 'lucide-react';
 
 const Usuarios = () => {
     const [usuarios, setUsuarios] = useState([]);
@@ -78,13 +80,21 @@ const Usuarios = () => {
     };
 
     const handleResetPassword = async (id) => {
-        const newPass = prompt("Ingrese la nueva contraseña:");
+        const { value: newPass } = await Swal.fire({
+            title: 'Restablecer Contraseña',
+            text: 'Ingrese la nueva contraseña:',
+            input: 'text',
+            showCancelButton: true,
+            confirmButtonText: 'Restablecer',
+            cancelButtonText: 'Cancelar',
+        });
         if (newPass) {
             try {
                 await api.post(`/usuarios/${id}/reset-password/`, { password: newPass });
-                alert("Contraseña restablecida correctamente.");
+                Swal.fire('Éxito', 'Contraseña restablecida correctamente.', 'success');
             } catch (error) {
                 console.error("Error resetting password:", error);
+                Swal.fire('Error', 'No se pudo restablecer la contraseña.', 'error');
             }
         }
     };
@@ -99,17 +109,30 @@ const Usuarios = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("¿Está seguro de que desea eliminar este usuario? Esta acción no se puede deshacer.")) {
+        const result = await Swal.fire({
+            title: '¿Está seguro?',
+            text: '¿Desea eliminar este usuario? Esta acción no se puede deshacer.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
             try {
                 await api.delete(`/usuarios/${id}/`);
-                alert("Usuario eliminado con éxito.");
+                Swal.fire('Eliminado', 'Usuario eliminado con éxito.', 'success');
                 fetchData();
             } catch (error) {
                 console.error("Error deleting user:", error);
-                alert("Error al eliminar el usuario.");
+                Swal.fire('Error', 'Error al eliminar el usuario.', 'error');
             }
         }
     };
+
+    if (loading && usuarios.length === 0) return <LoadingSpinner />;
 
     return (
         <div className="space-y-6 animate-fadeIn">
@@ -123,89 +146,89 @@ const Usuarios = () => {
                         <p className="text-slate-500 text-sm">Registro, edición, eliminación y consulta de usuarios registrados.</p>
                     </div>
                 </div>
-                <button
+                <Button
                     onClick={() => handleOpenModal()}
-                    className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                    variant="primary"
+                    icon={UserPlus}
                 >
-                    <UserPlus className="w-5 h-5 mr-2" />
                     Nueva Cuenta
-                </button>
+                </Button>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100">
-                        <tr>
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">ID</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nombre y Correo</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Rol</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {loading ? (
-                            <tr><td colSpan="5" className="px-6 py-10 text-center text-slate-400">Cargando usuarios...</td></tr>
-                        ) : usuarios.map((u) => (
-                            <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-6 py-4 text-slate-500 text-sm font-mono">{u.username}</td>
-                                <td className="px-6 py-4 text-slate-700">
-                                    <div className="font-medium text-slate-800">{u.nombre} {u.apellido_paterno} {u.apellido_materno}</div>
-                                    <div className="text-sm text-slate-500">{u.correo_institucional}</div>
-                                    {u.telefono && <div className="text-[10px] text-slate-400">Tel: {u.telefono}</div>}
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium border border-slate-200 uppercase">
-                                        {u.nombre_rol || 'Estudiante'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    {u.activo ? (
-                                        <div className="flex items-center text-emerald-600 text-sm">
-                                            <CheckCircle className="w-4 h-4 mr-1.5" /> Activo
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center text-rose-500 text-sm">
-                                            <XCircle className="w-4 h-4 mr-1.5" /> Inactivo
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex justify-end space-x-2">
-                                        <button
-                                            onClick={() => handleResetPassword(u.id)}
-                                            className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all"
-                                            title="Restablecer Contraseña"
-                                        >
-                                            <Key className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleOpenModal(u)}
-                                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                                            title="Editar"
-                                        >
-                                            <Edit2 className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => toggleStatus(u)}
-                                            className={`p-2 rounded-lg transition-all ${u.activo ? 'text-slate-400 hover:text-rose-500 hover:bg-rose-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
-                                            title={u.activo ? "Desactivar" : "Activar"}
-                                        >
-                                            {u.activo ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(u.id)}
-                                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-all"
-                                            title="Eliminar permanentemente"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </td>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[800px] md:min-w-full">
+                        <thead className="bg-slate-50 border-b border-slate-100">
+                            <tr>
+                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">ID</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nombre y Correo</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Rol</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {usuarios.map((u) => (
+                                <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-6 py-4 text-slate-500 text-sm font-mono">{u.username}</td>
+                                    <td className="px-6 py-4 text-slate-700">
+                                        <div className="font-medium text-slate-800">{u.nombre} {u.apellido_paterno} {u.apellido_materno}</div>
+                                        <div className="text-sm text-slate-500">{u.correo_institucional}</div>
+                                        {u.telefono && <div className="text-[10px] text-slate-400">Tel: {u.telefono}</div>}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium border border-slate-200 uppercase">
+                                            {u.nombre_rol || 'Estudiante'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {u.activo ? (
+                                            <div className="flex items-center text-emerald-600 text-sm">
+                                                <CheckCircle className="w-4 h-4 mr-1.5" /> Activo
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center text-rose-500 text-sm">
+                                                <XCircle className="w-4 h-4 mr-1.5" /> Inactivo
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end space-x-2">
+                                            <button
+                                                onClick={() => handleResetPassword(u.id)}
+                                                className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all"
+                                                title="Restablecer Contraseña"
+                                            >
+                                                <Key className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleOpenModal(u)}
+                                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                                title="Editar"
+                                            >
+                                                <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => toggleStatus(u)}
+                                                className={`p-2 rounded-lg transition-all ${u.activo ? 'text-slate-400 hover:text-rose-500 hover:bg-rose-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
+                                                title={u.activo ? "Desactivar" : "Activar"}
+                                            >
+                                                {u.activo ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(u.id)}
+                                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-all"
+                                                title="Eliminar permanentemente"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {showModal && (
@@ -292,9 +315,11 @@ const Usuarios = () => {
                                         required
                                     >
                                         <option value="">Seleccionar Rol</option>
-                                        {roles.map(r => (
-                                            <option key={r.id_rol} value={r.id_rol}>{r.nombre_rol}</option>
-                                        ))}
+                                        {roles
+                                            .filter(r => ['Administrador', 'Docente', 'Técnico', 'Tecnico'].includes(r.nombre_rol))
+                                            .map(r => (
+                                                <option key={r.id_rol} value={r.id_rol}>{r.nombre_rol}</option>
+                                            ))}
                                     </select>
                                 </div>
                             </div>
@@ -311,19 +336,20 @@ const Usuarios = () => {
                                 </div>
                             )}
                             <div className="pt-4 flex space-x-3">
-                                <button
-                                    type="button"
+                                <Button
+                                    variant="ghost"
                                     onClick={() => setShowModal(false)}
-                                    className="flex-1 py-3 border border-slate-200 text-slate-600 rounded-xl font-semibold hover:bg-slate-50 transition-all"
+                                    className="flex-1"
                                 >
                                     Cancelar
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     type="submit"
-                                    className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                                    variant="primary"
+                                    className="flex-1"
                                 >
                                     {isEditing ? 'Guardar Cambios' : 'Crear Cuenta'}
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     </div>

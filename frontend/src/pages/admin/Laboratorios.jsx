@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import { AnimatePresence } from 'framer-motion';
 import Toast from '../../components/Toast';
 import api from '../../services/api';
+import Button from '../../components/common/Button';
 import {
     Monitor, Users, ToggleLeft, ToggleRight, Settings,
     MoreVertical, Edit2, Trash2, Plus, ChevronLeft,
@@ -176,7 +178,17 @@ const Laboratorios = () => {
     };
 
     const handleClearStation = async (station) => {
-        if (!window.confirm(`¿Liberar todos los equipos de la estación ${station.nombre}?`)) return;
+        const result = await Swal.fire({
+            title: '¿Está seguro?',
+            text: `¿Liberar todos los equipos de la estación ${station.nombre}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3b82f6',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sí, liberar',
+            cancelButtonText: 'Cancelar'
+        });
+        if (!result.isConfirmed) return;
 
         try {
             // Desvincular PC si tiene
@@ -281,15 +293,26 @@ const Laboratorios = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("¿Está seguro de que desea eliminar este laboratorio? Esta acción no se puede deshacer.")) {
+        const result = await Swal.fire({
+            title: '¿Está seguro?',
+            text: '¿Desea eliminar este laboratorio? Esta acción no se puede deshacer.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
             try {
                 await api.delete(`/laboratorios/${id}/`);
-                alert("Laboratorio eliminado con éxito.");
+                Swal.fire('Eliminado', 'Laboratorio eliminado con éxito.', 'success');
                 setSelectedLab(null);
                 fetchData();
             } catch (error) {
                 console.error("Error deleting lab:", error);
-                alert("Error al eliminar el laboratorio.");
+                Swal.fire('Error', 'Error al eliminar el laboratorio.', 'error');
             }
         }
     };
@@ -306,13 +329,13 @@ const Laboratorios = () => {
                         <p className="text-slate-500 text-sm">Registro, edición, eliminación y consulta de laboratorios registrados.</p>
                     </div>
                 </div>
-                <button
+                <Button
                     onClick={() => handleOpenModal()}
-                    className="flex items-center px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                    variant="primary"
+                    icon={Plus}
                 >
-                    <Plus className="w-5 h-5 mr-2" />
                     Nuevo Laboratorio
-                </button>
+                </Button>
             </div>
 
             {loading ? (
@@ -345,18 +368,22 @@ const Laboratorios = () => {
                         </div>
 
                         <div className="flex items-center space-x-3">
-                            <button
+                            <Button
                                 onClick={() => handleOpenModal(selectedLab)}
-                                className="flex items-center px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-100 transition-all active:scale-95"
+                                variant="outline"
+                                icon={Edit2}
+                                className="px-4 py-2.5"
                             >
-                                <Edit2 className="w-4 h-4 mr-2" /> Editar Información
-                            </button>
-                            <button
+                                Editar Información
+                            </Button>
+                            <Button
                                 onClick={() => handleDelete(selectedLab.id_laboratorio)}
-                                className="flex items-center px-4 py-2.5 bg-rose-50 text-rose-500 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95"
+                                variant="danger"
+                                icon={Trash2}
+                                className="px-4 py-2.5"
                             >
-                                <Trash2 className="w-4 h-4 mr-2" /> Eliminar Espacio
-                            </button>
+                                Eliminar Espacio
+                            </Button>
                         </div>
                     </div>
 
@@ -558,14 +585,17 @@ const Laboratorios = () => {
 
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Ubicación / Edificio</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Ej. Edificio B - Planta Alta"
-                                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-indigo-500 transition-all outline-none font-bold text-slate-700 placeholder:text-slate-300"
+                                    <select
+                                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-indigo-500 transition-all outline-none font-bold text-slate-700 appearance-none cursor-pointer"
                                         value={currentLab.ubicacion}
                                         onChange={(e) => setCurrentLab({ ...currentLab, ubicacion: e.target.value })}
                                         required
-                                    />
+                                    >
+                                        <option value="">Selecciona el Edificio</option>
+                                        <option value="Edificio P">Edificio P</option>
+                                        <option value="Edificio H">Edificio H</option>
+                                        <option value="Edificio G">Edificio G</option>
+                                    </select>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
@@ -626,19 +656,20 @@ const Laboratorios = () => {
                             </div>
 
                             <div className="pt-4 flex space-x-4">
-                                <button
-                                    type="button"
+                                <Button
+                                    variant="ghost"
                                     onClick={() => setShowModal(false)}
-                                    className="flex-1 py-4 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-50 transition-all active:scale-95"
+                                    className="flex-1"
                                 >
                                     Cancelar
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     type="submit"
-                                    className="flex-1 py-4 bg-indigo-600 text-white rounded-[1.25rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-95"
+                                    variant="primary"
+                                    className="flex-1"
                                 >
                                     {isEditing ? 'Guardar Cambios' : 'Crear Laboratorio'}
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     </div>

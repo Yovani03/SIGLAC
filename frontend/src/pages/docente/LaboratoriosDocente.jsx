@@ -1,3 +1,4 @@
+import LoadingSpinner from '../../components/LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { Monitor, Info, Box, Cpu, HardDrive, Package, Search, ChevronRight } from 'lucide-react';
 import api from '../../services/api';
@@ -39,7 +40,7 @@ const LaboratoriosDocente = () => {
         }
     };
 
-    if (loading) return <div className="p-10 text-center">Cargando laboratorios...</div>;
+    if (loading) return <LoadingSpinner />;
 
     return (
         <div className="space-y-8 animate-fadeIn">

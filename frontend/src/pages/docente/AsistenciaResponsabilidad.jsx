@@ -1,3 +1,4 @@
+import LoadingSpinner from '../../components/LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import {
     Users, Plus, Search, Filter, Edit2, Trash2,
@@ -105,7 +106,7 @@ const AsistenciaResponsabilidad = () => {
         a.equipo_detalle?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (loading) return <div className="p-10 text-center font-bold text-slate-400 animate-pulse">CARGANDO MÓDULO...</div>;
+    if (loading) return <LoadingSpinner />;
 
     return (
         <div className="space-y-8 animate-fadeIn pb-20">

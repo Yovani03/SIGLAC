@@ -1,10 +1,12 @@
+import LoadingSpinner from '../../components/LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import {
-    ClipboardList, Plus, Search, Filter, Edit2, Trash2,
-    Save, X, Check, AlertTriangle, Calendar, User,
+    ClipboardList, Plus, Search, Filter,
+    Save, X, Check, Calendar, User,
     MapPin, Info, FileText
 } from 'lucide-react';
 import api from '../../services/api';
+import Button from '../../components/common/Button';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import jsPDF from 'jspdf';
@@ -28,7 +30,6 @@ const BitacorasDocente = () => {
         usuario: user?.id || ''
     });
 
-    const [deleteConfirm, setDeleteConfirm] = useState(null);
 
     useEffect(() => {
         fetchData();
@@ -77,18 +78,7 @@ const BitacorasDocente = () => {
         }
     };
 
-    const handleDelete = async () => {
-        if (!deleteConfirm) return;
-        try {
-            await api.delete(`/bitacoras/${deleteConfirm.id}/`);
-            toast.success("Registro eliminado correctamente");
-            setDeleteConfirm(null);
-            fetchData();
-        } catch (error) {
-            console.error("Error deleting item", error);
-            toast.error("Error al eliminar el registro");
-        }
-    };
+
 
     const resetForm = () => {
         setFormData({
@@ -99,16 +89,7 @@ const BitacorasDocente = () => {
         });
     };
 
-    const openEdit = (item) => {
-        setEditingItem(item);
-        setFormData({
-            actividad_realizada: item.actividad_realizada,
-            tipo_actividad: item.tipo_actividad,
-            laboratorio: item.laboratorio,
-            usuario: item.usuario
-        });
-        setShowForm(true);
-    };
+
 
     const filteredItems = bitacoras.filter(item => {
         const matchesSearch =
@@ -215,7 +196,7 @@ const BitacorasDocente = () => {
         doc.save(`Reporte_Bitacora_Docente_${log.id_bitacora}.pdf`);
     };
 
-    if (loading) return <div className="p-10 text-center font-bold text-slate-400 animate-pulse">CARGANDO BITÁCORAS...</div>;
+    if (loading) return <LoadingSpinner />;
 
     return (
         <div className="space-y-8 animate-fadeIn pb-20">
@@ -224,13 +205,13 @@ const BitacorasDocente = () => {
                     <h1 className="text-3xl font-black text-slate-800 tracking-tight">Bitácoras de Actividad</h1>
                     <p className="text-slate-500 font-medium text-sm">Registro digital de uso, limpieza y mantenimiento de laboratorios.</p>
                 </div>
-                <button
+                <Button
                     onClick={() => { resetForm(); setEditingItem(null); setShowForm(true); }}
-                    className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl shadow-xl shadow-indigo-100 transition-all active:scale-95 font-black uppercase text-xs tracking-widest"
+                    variant="primary"
+                    icon={Plus}
                 >
-                    <Plus className="w-5 h-5" />
-                    <span>Nueva Entrada</span>
-                </button>
+                    Nueva Entrada
+                </Button>
             </div>
 
             {/* Filters */}
@@ -301,26 +282,14 @@ const BitacorasDocente = () => {
                                 </div>
                             </div>
 
-                            <div className="flex md:flex-col justify-end space-y-2">
-                                <button
-                                    onClick={() => openEdit(item)}
-                                    className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all"
-                                    title="Editar"
-                                >
-                                    <Edit2 className="w-5 h-5" />
-                                </button>
+                            <div className="flex justify-end items-start md:items-center space-x-2">
                                 <button
                                     onClick={() => generateSingleBitacoraPDF(item)}
-                                    className="p-3 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-2xl transition-all"
-                                    title="Descargar PDF"
+                                    className="flex items-center space-x-2 p-3 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-2xl transition-all shadow-sm font-bold text-xs uppercase"
+                                    title="Descargar PDF del Reporte"
                                 >
                                     <FileText className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={() => setDeleteConfirm({ id: item.id_bitacora, name: `Registro del ${new Date(item.fecha).toLocaleDateString()}` })}
-                                    className="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
-                                >
-                                    <Trash2 className="w-5 h-5" />
+                                    <span>Descargar Reporte</span>
                                 </button>
                             </div>
                         </div>
@@ -391,45 +360,20 @@ const BitacorasDocente = () => {
                                 />
                             </div>
 
-                            <button className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-indigo-700 shadow-2xl shadow-indigo-100 transition-all flex items-center justify-center active:scale-95 mt-4">
-                                <Save className="w-5 h-5 mr-3" />
-                                {editingItem ? 'Actualizar Registro' : 'Registrar Activity'}
-                            </button>
+                            <Button
+                                variant="primary"
+                                icon={Save}
+                                fullWidth
+                                type="submit"
+                                className="mt-4"
+                            >
+                                {editingItem ? 'Actualizar Registro' : 'Registrar Actividad'}
+                            </Button>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Delete Confirmation Modal */}
-            {deleteConfirm && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-scaleIn">
-                        <div className="p-8 text-center space-y-6">
-                            <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto">
-                                <AlertTriangle className="w-10 h-10 text-rose-500" />
-                            </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-slate-800 tracking-tight">¿Eliminar Registro?</h3>
-                                <p className="text-slate-500 font-medium mt-2">Esta acción borrará definitivamente el registro de <span className="text-rose-600 font-bold">{deleteConfirm.name}</span>.</p>
-                            </div>
-                            <div className="flex space-x-4">
-                                <button
-                                    onClick={() => setDeleteConfirm(null)}
-                                    className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest transition-all"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    className="flex-1 py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-rose-100 transition-all"
-                                >
-                                    Eliminar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

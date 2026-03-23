@@ -13,7 +13,7 @@ const AdminDashboardLayout = ({ children }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
 
     const handleLogout = () => {
         logout();
@@ -31,15 +31,34 @@ const AdminDashboardLayout = ({ children }) => {
     ];
 
     return (
-        <div className="flex h-screen bg-slate-50 font-sans text-slate-900">
-            {/* Sidebar */}
-            <aside className={`${sidebarOpen ? 'w-72' : 'w-20'} bg-white border-r border-slate-200 transition-all duration-300 flex flex-col relative z-20`}>
+        <div className="flex h-screen bg-slate-50 font-sans text-slate-900 relative">
+            {/* Mobile Sidebar Overlay */}
+            {sidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
+            {/* Sidebar (Desktop & Mobile) */}
+            <aside className={`
+                fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 transition-all duration-300 flex flex-col
+                ${sidebarOpen ? 'w-72 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'}
+                md:relative md:translate-x-0
+            `}>
                 <div className="p-8 flex items-center justify-between mb-4">
                     {sidebarOpen ? (
                         <h1 className="text-2xl font-black text-indigo-600 tracking-tighter">SIGLAC <span className="text-slate-400 font-light">Admin</span></h1>
                     ) : (
-                        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black">S</div>
+                        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black mx-auto">S</div>
                     )}
+                    {/* Botón para cerrar en móvil */}
+                    <button 
+                        onClick={() => setSidebarOpen(false)}
+                        className="p-2 text-slate-400 md:hidden hover:bg-slate-50 rounded-xl"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
                 </div>
 
                 <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
@@ -49,6 +68,7 @@ const AdminDashboardLayout = ({ children }) => {
                             <Link
                                 key={item.name}
                                 to={item.path}
+                                onClick={() => window.innerWidth < 768 && setSidebarOpen(false)}
                                 className={`flex items-center px-4 py-3.5 rounded-2xl transition-all duration-200 group relative ${isActive
                                     ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
                                     : 'text-slate-500 hover:bg-slate-50 hover:text-indigo-600'
@@ -89,9 +109,10 @@ const AdminDashboardLayout = ({ children }) => {
                     </button>
                 </div>
 
+                {/* Toggle Desktop */}
                 <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="absolute -right-3 top-20 bg-white border border-slate-200 rounded-full p-1 text-slate-400 hover:text-indigo-600 shadow-sm z-30 transition-transform active:scale-90"
+                    className="hidden md:block absolute -right-3 top-20 bg-white border border-slate-200 rounded-full p-1 text-slate-400 hover:text-indigo-600 shadow-sm z-30 transition-transform active:scale-90"
                 >
                     {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                 </button>
@@ -100,23 +121,35 @@ const AdminDashboardLayout = ({ children }) => {
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Navbar */}
-                <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center px-10 justify-between sticky top-0 z-10">
-                    <div className="flex items-center space-x-2">
-                        <span className="text-slate-300 font-medium">Panel</span>
-                        <ChevronRight className="w-4 h-4 text-slate-300" />
-                        <span className="text-slate-800 font-bold capitalize">
-                            {menuItems.find(i => i.path === location.pathname)?.name || 'Control'}
-                        </span>
+                <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center px-4 md:px-10 justify-between sticky top-0 z-30">
+                    <div className="flex items-center space-x-4">
+                        <button 
+                            onClick={() => setSidebarOpen(true)}
+                            className="p-2 text-slate-500 hover:bg-slate-50 rounded-xl md:hidden"
+                        >
+                            <Menu className="w-6 h-6" />
+                        </button>
+                        <div className="flex items-center space-x-2">
+                            <span className="hidden sm:inline text-slate-300 font-medium">Panel</span>
+                            <ChevronRight className="hidden sm:inline w-4 h-4 text-slate-300" />
+                            <span className="text-slate-800 font-bold capitalize text-sm md:text-base">
+                                {menuItems.find(i => i.path === location.pathname)?.name || 'Control'}
+                            </span>
+                        </div>
                     </div>
 
-                    <div className="flex items-center space-x-6">
-                        <OnlineIndicator />
+                    <div className="flex items-center space-x-3 md:space-x-6">
+                        <div className="scale-75 md:scale-100">
+                            <OnlineIndicator />
+                        </div>
                         <NotificationDropdown userRole="ADMIN" />
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-x-hidden overflow-y-auto p-10 scrollbar-hide">
-                    {children}
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-10 scrollbar-hide">
+                    <div className="max-w-7xl mx-auto">
+                        {children}
+                    </div>
                 </main>
             </div>
 

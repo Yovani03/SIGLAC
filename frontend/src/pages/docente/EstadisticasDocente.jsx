@@ -8,9 +8,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 const EstadisticasDocente = () => {
     const [loading, setLoading] = useState(true);
@@ -117,15 +119,7 @@ const EstadisticasDocente = () => {
         }
     };
 
-    if (loading) return (
-        <div className="flex flex-col h-screen items-center justify-center space-y-6 bg-slate-50/50">
-            <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-            <div className="text-center">
-                <p className="text-xl font-black text-slate-800 animate-pulse uppercase tracking-widest">Calculando Métricas...</p>
-                <p className="text-slate-400 font-medium mt-2">Sincronizando con la base de datos central</p>
-            </div>
-        </div>
-    );
+    if (loading) return <LoadingSpinner />;
 
     return (
         <div className="space-y-10 animate-fadeIn pb-20">
@@ -144,13 +138,6 @@ const EstadisticasDocente = () => {
                     >
                         <FileBarChart className="w-5 h-5 group-hover:scale-110 transition-transform" />
                         <span className="font-black uppercase text-[10px] tracking-widest whitespace-nowrap">Generar Reporte Mensual</span>
-                    </button>
-                    <button
-                        onClick={() => toast.success("Exportando Excel global...")}
-                        className="p-4 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-2xl transition-all"
-                        title="Exportar Excel Global"
-                    >
-                        <Download className="w-5 h-5" />
                     </button>
                 </div>
             </div>

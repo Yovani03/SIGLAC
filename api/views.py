@@ -448,31 +448,27 @@ def reportes_estadisticos(request):
         rol_nombre = user.rol.nombre_rol.lower() if user.rol else ''
         is_admin = rol_nombre in ['admin', 'administrador']
 
-        # 1. Active Failures (Current faults with details)
-        active_reports = ReporteFallo.objects.filter(~Q(estado='RESUELTO')).select_related('mobiliario', 'equipo_computo').order_by('-fecha_reporte')[:5]
-        
+        # 1. Fallos Recientes Activos (Solo los que no están RESUELTOS)
+        reports_qs = ReporteFallo.objects.exclude(estado='RESUELTO').order_by('-fecha_reporte')[:5]
         failures_summary = []
-        for r in active_reports:
+        for r in reports_qs:
+            item_name = 'Equipo Desconocido'
             if r.equipo_computo:
-                eq = r.equipo_computo
-                item_name = eq.serie or eq.marca or 'PC-Inventario'
-                lab = eq.laboratorio.nombre if hasattr(eq, 'laboratorio') and eq.laboratorio else 'Sin Lab'
+                item_name = r.equipo_computo.serie or r.equipo_computo.numero_inventario
             elif r.mobiliario:
-                mob = r.mobiliario
-                item_name = mob.serie or mob.marca or 'Mobiliario'
-                lab = mob.laboratorio.nombre if hasattr(mob, 'laboratorio') and mob.laboratorio else 'Sin Lab'
-            else:
-                item_name = 'General / Desconocido'
-                lab = 'Sin Lab'
-
+                item_name = r.mobiliario.serie or r.mobiliario.numero_inventario
+            
             failures_summary.append({
-                'id': r.id_reporte,
                 'name': item_name,
-                'lab': lab,
-                'descripcion': r.detalle_problema[:60] + '...' if r.detalle_problema and len(r.detalle_problema) > 60 else (r.detalle_problema or 'Sin descripción'),
                 'fecha': r.fecha_reporte.strftime('%d/%m/%Y'),
-                'estado': r.estado
+                'lab': (r.equipo_computo.laboratorio.nombre if r.equipo_computo and r.equipo_computo.laboratorio else (r.mobiliario.laboratorio.nombre if r.mobiliario and r.mobiliario.laboratorio else 'Ubicación General')),
+                'descripcion': r.detalle_problema or 'Sin descripción proporcionada'
             })
+
+        # 2. Distribución de Estados (Esto faltaba en la respuesta)
+        distribution = list(ReporteFallo.objects.values('estado').annotate(count=Count('id_reporte')))
+
+        # 3. Mantenimiento... (El resto de la lógica se mantiene igual)
 
         # 2. Maintenance Stats (Filtered by docente labs if not admin)
         if not is_admin:
@@ -570,6 +566,7 @@ def reportes_estadisticos(request):
 
         return Response({
             'top_failures': failures_summary,
+            'distribution': distribution,
             'maintenance': {
                 'total': maint_count,
                 'preventive': maint_preventive,

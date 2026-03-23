@@ -1,3 +1,4 @@
+import LoadingSpinner from '../../components/LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import {
@@ -64,7 +65,7 @@ const LaboratoriosTecnico = () => {
         }
     };
 
-    if (loading && !selectedLab) return <div className="p-10 text-center font-black text-slate-400 animate-pulse tracking-widest uppercase">Cargando Laboratorios...</div>;
+    if (loading && !selectedLab) return <LoadingSpinner />;
 
     return (
         <div className="space-y-8 animate-fadeIn pb-20">

@@ -9,6 +9,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import Button from '../../components/common/Button';
 
 const Bitacoras = () => {
     const [bitacoras, setBitacoras] = useState([]);
@@ -269,19 +271,21 @@ const Bitacoras = () => {
                     </button>
 
                     {/* Botones ocultos temporalmente
-                    <button
+                    <Button
                         onClick={generatePDF}
                         disabled={bitacoras.length === 0}
-                        className="flex items-center space-x-3 bg-rose-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.15em] hover:bg-rose-700 shadow-xl shadow-rose-100 transition-all active:scale-95 disabled:opacity-50"
+                        variant="danger"
+                        icon={Printer}
                     >
-                        <Printer className="w-4 h-4" />
-                        <span>Generar Informe PDF</span>
-                    </button>
+                        Generar Informe PDF
+                    </Button>
 
-                    <button className="flex items-center space-x-3 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-800 shadow-xl shadow-slate-200 transition-all active:scale-95">
-                        <Download className="w-4 h-4" />
-                        <span>Excel</span>
-                    </button>
+                    <Button
+                        variant="primary"
+                        icon={Download}
+                    >
+                        Excel
+                    </Button>
                     */}
                 </div>
             </div>
@@ -344,10 +348,7 @@ const Bitacoras = () => {
                 {/* Table Layout */}
                 <div className="overflow-x-auto">
                     {loading ? (
-                        <div className="py-32 flex flex-col items-center">
-                            <div className="w-14 h-14 border-4 border-indigo-500/10 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
-                            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">Sincronizando registros de auditoría...</p>
-                        </div>
+                        <LoadingSpinner />
                     ) : filteredLogs.length > 0 ? (
                         <table className="w-full border-collapse">
                             <thead>

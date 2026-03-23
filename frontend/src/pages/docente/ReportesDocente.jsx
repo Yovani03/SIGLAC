@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, Plus, X, Search, Filter, Clock, CheckCircle, MoreVertical, History, Monitor, Edit2, Trash2, Box, Cpu } from 'lucide-react';
+import { AlertCircle, Plus, X, Search, Eye, Clock, CheckCircle, History, Monitor, Box, Cpu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
@@ -18,8 +18,7 @@ const ReportesDocente = () => {
         estado: 'PENDIENTE'
     });
     const [submitting, setSubmitting] = useState(false);
-    const [editingReport, setEditingReport] = useState(null);
-    const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [viewingReport, setViewingReport] = useState(null);
 
     useEffect(() => {
         fetchInitialData();
@@ -79,16 +78,10 @@ const ReportesDocente = () => {
                 equipo_computo: formData.tipo_item === 'pc' ? formData.item_id : null
             };
 
-            if (editingReport) {
-                await api.put(`/reportes-fallos/${editingReport.id_reporte}/`, payload);
-                toast.success("Reporte actualizado");
-            } else {
-                await api.post('/reportes-fallos/', payload);
-                toast.success("Reporte enviado correctamente");
-            }
+            await api.post('/reportes-fallos/', payload);
+            toast.success("Reporte enviado correctamente");
 
             setShowModal(false);
-            setEditingReport(null);
             setFormData({ item_id: '', tipo_item: 'mobiliario', detalle_problema: '', urgencia: 'MEDIA', id_laboratorio: '', estado: 'PENDIENTE' });
             fetchInitialData();
         } catch (error) {
@@ -100,30 +93,8 @@ const ReportesDocente = () => {
         }
     };
 
-    const handleDelete = async () => {
-        if (!deleteConfirm) return;
-        try {
-            await api.delete(`/reportes-fallos/${deleteConfirm.id_reporte}/`);
-            toast.success("Reporte eliminado");
-            setDeleteConfirm(null);
-            fetchInitialData();
-        } catch (error) {
-            console.error("Error deleting report", error);
-            toast.error("No se pudo eliminar el reporte");
-        }
-    };
-
-    const openEdit = (reporte) => {
-        setEditingReport(reporte);
-        setFormData({
-            item_id: reporte.equipo_computo || reporte.mobiliario || '',
-            tipo_item: reporte.equipo_computo ? 'pc' : 'mobiliario',
-            detalle_problema: reporte.detalle_problema,
-            urgencia: reporte.urgencia,
-            estado: reporte.estado,
-            id_laboratorio: '' // No lo tenemos directo en el reporte, pero al cargar se filtrará
-        });
-        setShowModal(true);
+    const openView = (reporte) => {
+        setViewingReport(reporte);
     };
 
     const getUrgenciaBadge = (urgencia) => {
@@ -257,8 +228,9 @@ const ReportesDocente = () => {
                                         </td>
                                         <td className="p-8 text-right">
                                             <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => openEdit(reporte)} className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg"><Edit2 className="w-4 h-4" /></button>
-                                                <button onClick={() => setDeleteConfirm(reporte)} className="p-2 text-slate-400 hover:text-rose-600 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                                                <button onClick={() => openView(reporte)} className="flex items-center space-x-2 px-4 py-2 bg-indigo-50 text-indigo-600 font-black text-[10px] uppercase tracking-wider rounded-xl hover:bg-indigo-100 transition-colors">
+                                                    <Eye className="w-4 h-4" /> <span>Ver Detalles</span>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -284,30 +256,15 @@ const ReportesDocente = () => {
                     <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl animate-slideUp overflow-hidden">
                         <div className="p-10 border-b border-slate-100 flex justify-between items-center bg-indigo-600 text-white">
                             <div>
-                                <h3 className="text-2xl font-black tracking-tight">{editingReport ? 'Actualizar Ticket' : 'Levantar Ticket'}</h3>
-                                <p className="text-indigo-100 text-sm font-medium">{editingReport ? 'Modifica el estado o detalles' : 'Describe el problema para ser atendido.'}</p>
+                                <h3 className="text-2xl font-black tracking-tight">Levantar Ticket</h3>
+                                <p className="text-indigo-100 text-sm font-medium">Describe el problema para ser atendido.</p>
                             </div>
-                            <button onClick={() => { setShowModal(false); setEditingReport(null); }} className="p-3 hover:bg-white/10 rounded-full transition-all">
+                            <button onClick={() => setShowModal(false)} className="p-3 hover:bg-white/10 rounded-full transition-all">
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-10 space-y-8">
-                            {editingReport && (
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Estado del Reporte</label>
-                                    <select
-                                        value={formData.estado}
-                                        onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    >
-                                        <option value="PENDIENTE">Pendiente</option>
-                                        <option value="EN REVISION">En revisión</option>
-                                        <option value="EN MANTENIMIENTO">En mantenimiento</option>
-                                        <option value="RESUELTO">Resuelto</option>
-                                    </select>
-                                </div>
-                            )}
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Laboratorio</label>
@@ -397,32 +354,53 @@ const ReportesDocente = () => {
                 </div>
             )}
 
-            {/* Modal de Confirmación de Eliminación */}
-            {deleteConfirm && (
+            {/* Modal de Detalles (Visualizar) */}
+            {viewingReport && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-scaleIn">
-                        <div className="p-8 text-center space-y-6">
-                            <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto">
-                                <AlertCircle className="w-10 h-10 text-rose-500" />
-                            </div>
+                    <div className="bg-white rounded-[2.0rem] md:rounded-[2.5rem] w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden shadow-2xl animate-scaleIn">
+                        <div className="p-6 md:p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50 shrink-0">
                             <div>
-                                <h3 className="text-2xl font-black text-slate-800 tracking-tight">¿Eliminar Reporte?</h3>
-                                <p className="text-slate-500 font-medium mt-2">Esta acción borrará definitivamente el reporte <span className="text-rose-600 font-bold">#RP-{deleteConfirm.id_reporte.toString().padStart(4, '0')}</span>.</p>
+                                <h3 className="text-xl font-black text-slate-800 tracking-tight">Detalles del Reporte</h3>
+                                <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Folio #RP-{viewingReport.id_reporte.toString().padStart(4, '0')}</p>
                             </div>
-                            <div className="flex space-x-4">
-                                <button
-                                    onClick={() => setDeleteConfirm(null)}
-                                    className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest transition-all"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    className="flex-1 py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-rose-100 transition-all"
-                                >
-                                    Eliminar
-                                </button>
+                            <button onClick={() => setViewingReport(null)} className="p-2 bg-white hover:bg-slate-100 text-slate-400 rounded-full transition-all">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="p-6 md:p-8 space-y-6 overflow-y-auto">
+                            <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
+                                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-2">Equipo Involucrado</p>
+                                <p className="font-bold text-slate-800 text-lg">{viewingReport.laboratorio_nombre || "General"}</p>
+                                <p className="text-xs font-medium text-slate-500 mt-1">{viewingReport.mobiliario_detalle || "Equipo General"}</p>
                             </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex flex-col items-start justify-center">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Estado</p>
+                                    {getEstadoBadge(viewingReport.estado)}
+                                </div>
+                                <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex flex-col items-start justify-center">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Urgencia</p>
+                                    {getUrgenciaBadge(viewingReport.urgencia)}
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">Descripción del Problema</h4>
+                                <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
+                                    <p className="text-sm font-bold text-slate-600 leading-relaxed">{viewingReport.detalle_problema}</p>
+                                </div>
+                            </div>
+
+                            {(viewingReport.estado === 'RESUELTO' && viewingReport.comentarios_resolucion) && (
+                                <div className="mt-4 p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100">
+                                    <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 flex items-center"><CheckCircle className="w-3 h-3 mr-2" /> Comentarios de Resolución</h4>
+                                    <p className="text-sm font-bold text-emerald-800 leading-relaxed">{viewingReport.comentarios_resolucion}</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-6 bg-slate-50 text-right shrink-0">
+                            <button onClick={() => setViewingReport(null)} className="px-8 py-3 bg-slate-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-all shadow-xl shadow-slate-200">Cerrar</button>
                         </div>
                     </div>
                 </div>

@@ -1,3 +1,4 @@
+import LoadingSpinner from '../../components/LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import {
@@ -148,7 +149,7 @@ const ReportesTecnico = () => {
         return null;
     };
 
-    if (loading) return <div className="p-10 text-center font-black text-slate-400 animate-pulse tracking-widest uppercase">Cargando Reportes...</div>;
+    if (loading) return <LoadingSpinner />;
 
     const stats = {
         PENDIENTE: reportes.filter(r => r.estado === 'PENDIENTE').length,

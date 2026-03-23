@@ -1,3 +1,4 @@
+import LoadingSpinner from '../../components/LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -67,7 +68,7 @@ const TecnicoDashboard = () => {
         fetchStats();
     }, []);
 
-    if (loading) return <div className="p-10 text-center font-black text-slate-400 animate-pulse tracking-widest uppercase">Cargando Panel...</div>;
+    if (loading) return <LoadingSpinner />;
 
     return (
         <div className="space-y-10 animate-fadeIn">

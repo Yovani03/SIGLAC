@@ -269,6 +269,9 @@ class HorarioLaboratorio(models.Model):
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
     descripcion_actividad = models.CharField(max_length=150, blank=True, null=True)
+    grado = models.CharField(max_length=20, blank=True, null=True)
+    grupo = models.CharField(max_length=10, blank=True, null=True)
+    carrera = models.CharField(max_length=100, blank=True, null=True)
     laboratorio = models.ForeignKey(Laboratorio, on_delete=models.CASCADE, db_column='id_laboratorio')
     docente = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, db_column='id_docente', related_name='horarios_clase')
 
@@ -293,7 +296,7 @@ class Bitacora(models.Model):
     actividad_realizada = models.TextField(blank=True, null=True)
     tipo_actividad = models.CharField(max_length=50, blank=True, null=True)
     usuario = models.ForeignKey(Usuario, on_delete=models.RESTRICT, db_column='id_usuario')
-    laboratorio = models.ForeignKey(Laboratorio, on_delete=models.RESTRICT, null=True, blank=True, db_column='id_laboratorio')
+    laboratorio = models.ForeignKey(Laboratorio, on_delete=models.SET_NULL, null=True, blank=True, db_column='id_laboratorio')
 
     class Meta:
         db_table = 'bitacoras'
@@ -304,7 +307,7 @@ class Asistencia(models.Model):
     hora_entrada = models.TimeField(auto_now_add=True)
     hora_salida = models.TimeField(blank=True, null=True)
     usuario = models.ForeignKey(Usuario, on_delete=models.RESTRICT, db_column='id_usuario')
-    laboratorio = models.ForeignKey(Laboratorio, on_delete=models.RESTRICT, db_column='id_laboratorio')
+    laboratorio = models.ForeignKey(Laboratorio, on_delete=models.CASCADE, db_column='id_laboratorio')
     asignacion_equipo = models.ForeignKey(AsignacionEquipo, on_delete=models.SET_NULL, null=True, blank=True, db_column='id_asignacion_equipo')
     observaciones = models.TextField(blank=True, null=True)
 

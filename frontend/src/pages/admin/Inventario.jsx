@@ -1,10 +1,13 @@
+import LoadingSpinner from '../../components/LoadingSpinner';
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import { AnimatePresence } from 'framer-motion';
 import Toast from '../../components/Toast';
 import api from '../../services/api';
+import Button from '../../components/common/Button';
 import {
     Cpu, HardDrive, Layout, Plus, Info, Box, Search,
-    Monitor, Save, Server, X, MousePointer2, ChevronRight, ChevronLeft, MapPin
+    Monitor, Save, Server, X, MousePointer2, ChevronRight, ChevronLeft, MapPin, Eye, Edit2, Trash2
 } from 'lucide-react';
 
 const StationCard = ({ name, estacion, onClick }) => {
@@ -44,7 +47,10 @@ const StationCard = ({ name, estacion, onClick }) => {
 };
 
 const Inventario = () => {
-    const [activeTab, setActiveTab] = useState('alta');
+    const [activeTab, setActiveTab] = useState('listado');
+    const [editingItem, setEditingItem] = useState(null);
+    const [viewingItem, setViewingItem] = useState(null);
+    const [showAltaModal, setShowAltaModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [laboratorios, setLaboratorios] = useState([]);
     const [categorias, setCategorias] = useState([]);
@@ -120,19 +126,37 @@ const Inventario = () => {
             };
 
             if (isPCVal) {
-                await api.post('/equipos-computo/', {
-                    ...dataToSave,
-                    procesador: newItem.procesador,
-                    ram: newItem.ram,
-                    disco_duro: newItem.disco_duro,
-                });
+                if (editingItem) {
+                    await api.patch(`/equipos-computo/${editingItem.numero_inventario}/`, {
+                        ...dataToSave,
+                        procesador: newItem.procesador,
+                        ram: newItem.ram,
+                        disco_duro: newItem.disco_duro,
+                    });
+                } else {
+                    await api.post('/equipos-computo/', {
+                        ...dataToSave,
+                        procesador: newItem.procesador,
+                        ram: newItem.ram,
+                        disco_duro: newItem.disco_duro,
+                    });
+                }
             } else {
-                await api.post('/mobiliario/', {
-                    ...dataToSave,
-                    tipo_mobiliario: newItem.tipo_mobiliario || null,
-                });
+                if (editingItem) {
+                    await api.patch(`/mobiliario/${editingItem.numero_inventario}/`, {
+                        ...dataToSave,
+                        tipo_mobiliario: newItem.tipo_mobiliario || null,
+                    });
+                } else {
+                    await api.post('/mobiliario/', {
+                        ...dataToSave,
+                        tipo_mobiliario: newItem.tipo_mobiliario || null,
+                    });
+                }
             }
-            showToast("Ítem registrado con éxito mediante No. Serie.");
+            showToast(editingItem ? "Ítem actualizado con éxito." : "Ítem registrado con éxito mediante No. Serie.");
+            setShowAltaModal(false);
+            setEditingItem(null);
             setNewItem({
                 numero_inventario: '', marca: '', modelo: '', serie: '',
                 estado_condicion: 'BUENO', ubicacion_especifica: '',
@@ -143,6 +167,52 @@ const Inventario = () => {
         } catch (error) {
             console.error("Error saving equipment:", error);
             showToast("Error al registrar. Verifique si el ID de inventario ya existe.", "error");
+        }
+    };
+
+    const handleEditItem = (item) => {
+        setEditingItem(item);
+        setNewItem({
+            numero_inventario: item.numero_inventario,
+            marca: item.marca || '',
+            modelo: item.modelo || '',
+            serie: item.serie || '',
+            estado_condicion: item.estado_condicion || 'BUENO',
+            ubicacion_especifica: item.ubicacion_especifica || '',
+            categoria: item.categoria || '',
+            tipo_mobiliario: item.tipo_mobiliario || '',
+            procesador: item.procesador || '',
+            ram: item.ram || '',
+            disco_duro: item.disco_duro || '',
+        });
+        setShowAltaModal(true);
+    };
+
+    const handleViewItem = (item) => {
+        setViewingItem(item);
+    };
+
+    const handleDeleteItem = async (type, itemId) => {
+        const result = await Swal.fire({
+            title: '¿Está seguro?',
+            text: `¿Eliminar permanentemente este ítem (${itemId})? Esta acción no se puede deshacer.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+        if (!result.isConfirmed) return;
+
+        const endpoint = (type === 'pc' || itemId.startsWith('PC')) ? `/equipos-computo/${itemId}/` : `/mobiliario/${itemId}/`;
+        try {
+            await api.delete(endpoint);
+            showToast("Ítem eliminado correctamente.");
+            fetchData();
+        } catch (error) {
+            console.error("Error deleting item:", error);
+            showToast("No se pudo eliminar. Verifique si tiene dependencias activas.", "error");
         }
     };
 
@@ -181,7 +251,7 @@ const Inventario = () => {
             setSelectedEstacion(res.data);
         } catch (error) {
             console.error("Error linking item:", error);
-            alert("Error al asociar el ítem.");
+            showToast("Error al asociar el ítem.", "error");
         }
     };
 
@@ -197,7 +267,7 @@ const Inventario = () => {
         }
     };
 
-    if (loading) return <div className="p-10 text-center text-slate-500 font-bold uppercase tracking-widest">Cargando...</div>;
+    if (loading) return <LoadingSpinner />;
 
     return (
         <div className="space-y-6 animate-fadeIn pb-20">
@@ -302,134 +372,233 @@ const Inventario = () => {
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex space-x-1 bg-slate-100 p-1.5 rounded-2xl w-fit">
-                <button
-                    onClick={() => setActiveTab('alta')}
-                    className={`flex items-center px-6 py-2.5 rounded-xl font-bold transition-all ${activeTab === 'alta' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            {/* Header Toolbar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full gap-4 mb-6">
+                <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit">
+                    <button className="flex items-center px-8 py-3 rounded-xl font-bold bg-white text-indigo-600 shadow-sm transition-all pointer-events-none">
+                        <HardDrive className="w-4 h-4 mr-2" /> Inventario Global
+                    </button>
+                </div>
+
+                <Button
+                    onClick={() => {
+                        setEditingItem(null);
+                        setNewItem({
+                            numero_inventario: '', marca: '', modelo: '', serie: '',
+                            estado_condicion: 'BUENO', ubicacion_especifica: '',
+                            categoria: '', tipo_mobiliario: '',
+                            procesador: '', ram: '', disco_duro: '', detalles_tecnicos: {}
+                        });
+                        setShowAltaModal(true);
+                    }}
+                    variant="primary"
+                    icon={Plus}
                 >
-                    <Plus className="w-4 h-4 mr-2" /> Alta de Equipos
-                </button>
-                <button
-                    onClick={() => setActiveTab('listado')}
-                    className={`flex items-center px-6 py-2.5 rounded-xl font-bold transition-all ${activeTab === 'listado' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                    <HardDrive className="w-4 h-4 mr-2" /> Inventario
-                </button>
+                    Nuevo Equipo
+                </Button>
             </div>
 
-            {activeTab === 'alta' && (
-                <div className="max-w-4xl mx-auto animate-fadeIn">
-                    <div className="bg-white p-8 md:p-12 rounded-[3rem] border border-slate-100 shadow-xl">
-                        <h3 className="text-2xl font-black text-slate-800 mb-8 flex items-center">
-                            <Plus className="w-8 h-8 mr-4 text-amber-500" /> Nuevo Registro de Equipo
-                        </h3>
-                        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Categoría del Bien</label>
-                                    <select
-                                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-bold text-slate-700"
-                                        value={newItem.categoria}
-                                        onChange={(e) => setNewItem({ ...newItem, categoria: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">Seleccione...</option>
-                                        {categorias
-                                            .filter(c => !c.nombre_tipo.toLowerCase().includes('monitor') && !c.nombre_tipo.toLowerCase().includes('monitores'))
-                                            .map(c => (
-                                                <option key={c.id_categoria} value={c.id_categoria}>{c.nombre_tipo}</option>
-                                            ))
-                                        }
-                                    </select>
-                                </div>
-
-                                {newItem.categoria && (
-                                    <>
-                                        <div className="grid grid-cols-1 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Num. de Serie (Identificador Único)</label>
-                                                <input
-                                                    type="text"
-                                                    className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-black text-lg"
-                                                    value={newItem.serie}
-                                                    onChange={(e) => setNewItem({ ...newItem, serie: e.target.value })}
-                                                    placeholder="ESCRIBE O ESCANEA SERIE..."
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {!isPC() && (
-                                            <div className="space-y-2 animate-fadeIn">
-                                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Mobiliario</label>
-                                                <select
-                                                    className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-bold"
-                                                    value={newItem.tipo_mobiliario}
-                                                    onChange={(e) => setNewItem({ ...newItem, tipo_mobiliario: e.target.value })}
-                                                    required
-                                                >
-                                                    <option value="">Seleccione Estilo...</option>
-                                                    {tiposMobiliario.map(t => (
-                                                        <option key={t.id_tipo} value={t.id_tipo}>{t.nombre}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        )}
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Marca</label>
-                                                <input type="text" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-bold" value={newItem.marca} onChange={(e) => setNewItem({ ...newItem, marca: e.target.value })} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Modelo</label>
-                                                <input type="text" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-bold" value={newItem.modelo} onChange={(e) => setNewItem({ ...newItem, modelo: e.target.value })} />
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
+            {/* Modal de Alta de Equipo */}
+            <AnimatePresence>
+                {showAltaModal && (
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-[3.5rem] w-full max-w-4xl shadow-2xl relative animate-scaleIn flex flex-col max-h-[90vh] overflow-hidden">
+                            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                                <h3 className="text-2xl font-black text-slate-800 flex items-center">
+                                    <Plus className="w-8 h-8 mr-4 text-amber-500" /> {editingItem ? 'Editar Registro de Equipo' : 'Nuevo Registro de Equipo'}
+                                </h3>
+                                <button onClick={() => setShowAltaModal(false)} className="p-2 bg-white hover:bg-slate-100 text-slate-400 rounded-full transition-all">
+                                    <X className="w-6 h-6" />
+                                </button>
                             </div>
-
-                            <div className="space-y-6">
-                                {newItem.categoria && (
-                                    <>
+                            <div className="p-8 overflow-y-auto">
+                                <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-6">
                                         <div className="space-y-2">
-                                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Condición Inicial</label>
+                                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Categoría del Bien</label>
                                             <select
-                                                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-bold"
-                                                value={newItem.estado_condicion}
-                                                onChange={(e) => setNewItem({ ...newItem, estado_condicion: e.target.value })}
+                                                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-bold text-slate-700"
+                                                value={newItem.categoria}
+                                                onChange={(e) => setNewItem({ ...newItem, categoria: e.target.value })}
+                                                required
                                             >
-                                                <option value="BUENO">Óptimo / Nuevo</option>
-                                                <option value="REGULAR">Funcional / Usado</option>
-                                                <option value="MALO">Dañado / Reparación</option>
+                                                <option value="">Seleccione...</option>
+                                                {categorias
+                                                    .filter(c => !c.nombre_tipo.toLowerCase().includes('monitor') && !c.nombre_tipo.toLowerCase().includes('monitores'))
+                                                    .map(c => (
+                                                        <option key={c.id_categoria} value={c.id_categoria}>{c.nombre_tipo}</option>
+                                                    ))
+                                                }
                                             </select>
                                         </div>
 
-                                        {isPC() && (
-                                            <div className="p-6 bg-amber-50 rounded-3xl space-y-4 border border-amber-100 animate-fadeIn">
-                                                <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Especificaciones de Cómputo</p>
-                                                <input type="text" placeholder="Procesador (Ej: Core i7)" className="w-full px-4 py-3 bg-white border border-amber-100 rounded-xl text-sm font-bold" value={newItem.procesador} onChange={(e) => setNewItem({ ...newItem, procesador: e.target.value })} />
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <input type="text" placeholder="RAM" className="px-4 py-3 bg-white border border-amber-100 rounded-xl text-sm font-bold" value={newItem.ram} onChange={(e) => setNewItem({ ...newItem, ram: e.target.value })} />
-                                                    <input type="text" placeholder="Almacenamiento" className="px-4 py-3 bg-white border border-amber-100 rounded-xl text-sm font-bold" value={newItem.disco_duro} onChange={(e) => setNewItem({ ...newItem, disco_duro: e.target.value })} />
+                                        {newItem.categoria && (
+                                            <>
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Num. de Serie (Identificador Único)</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-black text-lg"
+                                                            value={newItem.serie}
+                                                            onChange={(e) => setNewItem({ ...newItem, serie: e.target.value })}
+                                                            placeholder="ESCRIBE O ESCANEA SERIE..."
+                                                            required
+                                                        />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
 
-                                        <div className="pt-4">
-                                            <button className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-slate-800 shadow-2xl shadow-slate-200 transition-all flex items-center justify-center active:scale-95">
-                                                <Save className="w-6 h-6 mr-3 text-amber-500" /> Confirmar Alta de Equipo
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
+                                                {!isPC() && (
+                                                    <div className="space-y-2 animate-fadeIn">
+                                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Mobiliario</label>
+                                                        <select
+                                                            className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-bold"
+                                                            value={newItem.tipo_mobiliario}
+                                                            onChange={(e) => setNewItem({ ...newItem, tipo_mobiliario: e.target.value })}
+                                                            required
+                                                        >
+                                                            <option value="">Seleccione Estilo...</option>
+                                                            {tiposMobiliario.map(t => (
+                                                                <option key={t.id_tipo} value={t.id_tipo}>{t.nombre}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Marca</label>
+                                                        <input type="text" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-bold" value={newItem.marca} onChange={(e) => setNewItem({ ...newItem, marca: e.target.value })} />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Modelo</label>
+                                                        <input type="text" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-bold" value={newItem.modelo} onChange={(e) => setNewItem({ ...newItem, modelo: e.target.value })} />
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        {newItem.categoria && (
+                                            <>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Condición Inicial</label>
+                                                    <select
+                                                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-amber-500 transition-all outline-none font-bold"
+                                                        value={newItem.estado_condicion}
+                                                        onChange={(e) => setNewItem({ ...newItem, estado_condicion: e.target.value })}
+                                                    >
+                                                        <option value="BUENO">Óptimo / Nuevo</option>
+                                                        <option value="REGULAR">Funcional / Usado</option>
+                                                        <option value="MALO">Dañado / Reparación</option>
+                                                    </select>
+                                                </div>
+
+                                                {isPC() && (
+                                                    <div className="p-6 bg-amber-50 rounded-3xl space-y-4 border border-amber-100 animate-fadeIn">
+                                                        <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Especificaciones de Cómputo</p>
+                                                        <input type="text" placeholder="Procesador (Ej: Core i7)" className="w-full px-4 py-3 bg-white border border-amber-100 rounded-xl text-sm font-bold" value={newItem.procesador} onChange={(e) => setNewItem({ ...newItem, procesador: e.target.value })} />
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div className="relative">
+                                                                <input type="text" placeholder="RAM" className="w-full px-4 py-3 pr-10 bg-white border border-amber-100 rounded-xl text-sm font-bold" value={(newItem.ram || '').replace(/\D/g, '')} onChange={(e) => { const digits = e.target.value.replace(/\D/g, ''); setNewItem({ ...newItem, ram: digits ? digits + ' GB' : '' }); }} />
+                                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-amber-500 uppercase">GB</span>
+                                                            </div>
+                                                            <div className="relative">
+                                                                <input type="text" placeholder="Almacenamiento" className="w-full px-4 py-3 pr-10 bg-white border border-amber-100 rounded-xl text-sm font-bold" value={(newItem.disco_duro || '').replace(/\D/g, '')} onChange={(e) => { const digits = e.target.value.replace(/\D/g, ''); setNewItem({ ...newItem, disco_duro: digits ? digits + ' MB' : '' }); }} />
+                                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-amber-500 uppercase">MB</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="pt-4">
+                                                    <Button
+                                                        variant="primary"
+                                                        icon={Save}
+                                                        fullWidth
+                                                        type="submit"
+                                                    >
+                                                        Confirmar Alta de Equipo
+                                                    </Button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </form>
                             </div>
-                        </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
+
+            {/* Modal de Detalles de Equipo (Viewing) */}
+            <AnimatePresence>
+                {viewingItem && (
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-[3.5rem] w-full max-w-2xl shadow-2xl relative animate-scaleIn flex flex-col overflow-hidden">
+                            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-indigo-50 shrink-0">
+                                <h3 className="text-2xl font-black text-slate-800 flex items-center">
+                                    <Info className="w-8 h-8 mr-4 text-indigo-500" /> Detalles de Equipo
+                                </h3>
+                                <button onClick={() => setViewingItem(null)} className="p-2 bg-white hover:bg-slate-100 text-slate-400 rounded-full transition-all">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                            <div className="p-8 space-y-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No. Serie / ID</p>
+                                        <p className="font-bold text-slate-800 text-lg">{viewingItem.numero_inventario}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoría</p>
+                                        <p className="font-bold text-slate-800 text-lg">{viewingItem.categoria_nombre || 'General'}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Marca / Modelo</p>
+                                        <p className="font-bold text-slate-800 text-lg">{viewingItem.marca} {viewingItem.modelo}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Condición</p>
+                                        <p className="font-bold text-slate-800 text-lg">{viewingItem.estado_condicion}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ubicación</p>
+                                        <p className="font-bold text-slate-800 text-lg">{viewingItem.laboratorio_nombre || 'Sin Laboratorio'}</p>
+                                    </div>
+                                    {viewingItem.estacion_nombre && (
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estación</p>
+                                            <p className="font-bold text-slate-800 text-lg">{viewingItem.estacion_nombre}</p>
+                                        </div>
+                                    )}
+                                    {viewingItem.procesador && (
+                                        <>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Procesador</p>
+                                                <p className="font-bold text-slate-800 text-lg">{viewingItem.procesador}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">RAM / Almacenamiento</p>
+                                                <p className="font-bold text-slate-800 text-lg">{viewingItem.ram} / {viewingItem.disco_duro}</p>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                                <div className="pt-6 border-t border-slate-100 flex justify-end">
+                                    <Button
+                                        onClick={() => setViewingItem(null)}
+                                        variant="primary"
+                                    >
+                                        Cerrar Detalles
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </AnimatePresence >
 
             {activeTab === 'listado' && (
                 <div className="space-y-6 animate-fadeIn">
@@ -466,6 +635,7 @@ const Inventario = () => {
                                         <th className="px-8 py-5">Modelo / Marca</th>
                                         <th className="px-8 py-5">Ubicación Actual</th>
                                         <th className="px-8 py-5 text-center">Estado</th>
+                                        <th className="px-8 py-5 text-right">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -496,11 +666,36 @@ const Inventario = () => {
                                                         <span className="text-[9px] font-black uppercase">{hw.estado_condicion}</span>
                                                     </div>
                                                 </td>
+                                                <td className="px-8 py-6 text-right">
+                                                    <div className="flex items-center justify-end space-x-2">
+                                                        <button
+                                                            onClick={() => handleViewItem(hw)}
+                                                            className="p-2 text-slate-400 hover:text-indigo-600 transition-colors bg-white rounded-xl shadow-sm border border-slate-100 hover:border-indigo-200"
+                                                            title="Ver Detalles"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleEditItem(hw)}
+                                                            className="p-2 text-slate-400 hover:text-amber-500 transition-colors bg-white rounded-xl shadow-sm border border-slate-100 hover:border-amber-200"
+                                                            title="Editar Equipo"
+                                                        >
+                                                            <Edit2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteItem(hw.procesador ? 'pc' : 'hw', hw.numero_inventario)}
+                                                            className="p-2 text-slate-400 hover:text-rose-500 transition-colors bg-white rounded-xl shadow-sm border border-slate-100 hover:border-rose-200"
+                                                            title="Eliminar Equipo"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="4" className="px-8 py-20 text-center">
+                                            <td colSpan="5" className="px-8 py-20 text-center">
                                                 <div className="flex flex-col items-center opacity-20">
                                                     <Search className="w-16 h-16 mb-4" />
                                                     <p className="font-black uppercase tracking-[0.5em]">Sin resultados para la búsqueda</p>
@@ -526,7 +721,7 @@ const Inventario = () => {
                     )}
                 </AnimatePresence>
             </div>
-        </div>
+        </div >
     );
 };
 

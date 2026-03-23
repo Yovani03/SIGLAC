@@ -6,6 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 const DocenteDashboard = () => {
     const { user } = useAuth();
@@ -41,12 +42,7 @@ const DocenteDashboard = () => {
         { name: 'Ver Equipos', icon: Laptop, color: 'bg-amber-50 text-amber-600', path: '/docente/equipos' },
     ];
 
-    if (loading) return (
-        <div className="flex flex-col h-64 items-center justify-center space-y-4">
-            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-slate-500 font-bold animate-pulse">Cargando tu panel...</p>
-        </div>
-    );
+    if (loading) return <LoadingSpinner />;
 
     return (
         <div className="space-y-10 animate-fadeIn">

@@ -1,3 +1,4 @@
+import LoadingSpinner from '../../components/LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import {
     Clock, Plus, Search, Filter, Edit2, Trash2,
@@ -130,7 +131,7 @@ const HorariosDocente = () => {
         return a.hora_inicio.localeCompare(b.hora_inicio);
     });
 
-    if (loading) return <div className="p-10 text-center font-bold text-slate-400 animate-pulse">CARGANDO HORARIOS...</div>;
+    if (loading) return <LoadingSpinner />;
 
     return (
         <div className="space-y-8 animate-fadeIn pb-20">

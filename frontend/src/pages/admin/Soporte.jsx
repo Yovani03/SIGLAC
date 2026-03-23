@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import {
     AlertCircle, Clock, Wrench, CheckCircle, MoreHorizontal,
-    MessageSquare, HardDrive, User, Calendar, RefreshCcw
+    MessageSquare, HardDrive, User, Calendar, RefreshCcw, Wrench
 } from 'lucide-react';
+import Button from '../../components/common/Button';
 
 const Soporte = () => {
     const [tickets, setTickets] = useState([]);
@@ -144,28 +145,32 @@ const Soporte = () => {
                                     </div>
                                 </div>
                             </div>
-
                             <div className="space-y-4">
                                 <p className="text-sm font-bold text-slate-800">Acciones de Mantenimiento</p>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button
+                                    <Button
                                         onClick={() => updateStatus(selectedTicket.id_reporte, 'EN REVISION')}
-                                        className="py-3 px-4 border border-amber-200 bg-amber-50 text-amber-700 rounded-2xl font-bold text-sm hover:bg-amber-100 transition-all flex items-center justify-center"
+                                        variant="outline"
+                                        icon={Clock}
                                     >
-                                        <Clock className="w-4 h-4 mr-2" /> Pasar a Revisión
-                                    </button>
-                                    <button
+                                        Pasar a Revisión
+                                    </Button>
+                                    <Button
                                         onClick={() => updateStatus(selectedTicket.id_reporte, 'EN MANTENIMIENTO')}
-                                        className="py-3 px-4 border border-indigo-200 bg-indigo-50 text-indigo-700 rounded-2xl font-bold text-sm hover:bg-indigo-100 transition-all flex items-center justify-center shadow-sm shadow-indigo-100"
+                                        variant="secondary"
+                                        icon={Wrench}
                                     >
-                                        <Wrench className="w-4 h-4 mr-2" /> Iniciar Mantenimiento
-                                    </button>
-                                    <button
+                                        Iniciar Mantenimiento
+                                    </Button>
+                                    <Button
                                         onClick={() => updateStatus(selectedTicket.id_reporte, 'RESUELTO')}
-                                        className="col-span-2 py-3 px-4 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-2xl font-bold text-sm hover:bg-emerald-100 transition-all flex items-center justify-center mt-2"
+                                        variant="success"
+                                        icon={CheckCircle}
+                                        fullWidth
+                                        className="col-span-2 mt-2"
                                     >
-                                        <CheckCircle className="w-4 h-4 mr-2" /> Marcar como Resuelto
-                                    </button>
+                                        Marcar como Resuelto
+                                    </Button>
                                 </div>
                             </div>
                         </div>

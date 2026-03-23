@@ -109,7 +109,7 @@ const Dashboard = () => {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="lg:col-span-3 bg-indigo-600 rounded-[3rem] p-12 text-white relative overflow-hidden shadow-2xl shadow-indigo-100 group"
+                    className="lg:col-span-3 bg-indigo-600 rounded-[3rem] p-6 md:p-12 text-white relative overflow-hidden shadow-2xl shadow-indigo-100 group"
                 >
                     <div className="relative z-10 h-full flex flex-col justify-between">
                         <div>

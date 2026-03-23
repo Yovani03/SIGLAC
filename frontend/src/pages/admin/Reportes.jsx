@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import Button from '../../components/common/Button';
 
 const Reportes = () => {
     const [loading, setLoading] = useState(true);
@@ -160,12 +162,7 @@ const Reportes = () => {
         fetchData();
     }, []);
 
-    if (loading && !data) return (
-        <div className="h-[60vh] flex flex-col items-center justify-center space-y-4">
-            <div className="w-16 h-16 border-4 border-rose-500/20 border-t-rose-500 rounded-full animate-spin"></div>
-            <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-xs">Generando Estadísticas...</p>
-        </div>
-    );
+    if (loading && !data) return <LoadingSpinner />;
 
     const statsCards = [
         {
@@ -272,13 +269,13 @@ const Reportes = () => {
                     >
                         <RefreshCw className={`w-5 h-5 text-slate-400 ${refreshing ? 'text-rose-500' : ''}`} />
                     </button>
-                    <button
+                    <Button
                         onClick={exportarInformePDF}
-                        className="flex items-center space-x-3 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-800 shadow-xl shadow-slate-200 transition-all active:scale-95"
+                        variant="primary"
+                        icon={Download}
                     >
-                        <Download className="w-4 h-4" />
-                        <span>Exportar Informe</span>
-                    </button>
+                        Exportar Informe
+                    </Button>
                 </div>
             </div>
 

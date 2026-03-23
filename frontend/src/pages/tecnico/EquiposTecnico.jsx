@@ -1,3 +1,4 @@
+import LoadingSpinner from '../../components/LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import {
@@ -88,7 +89,7 @@ const EquiposTecnico = () => {
         item.modelo?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (loading && allItems.length === 0) return <div className="p-10 text-center font-black text-slate-400 animate-pulse tracking-widest uppercase">Cargando Inventario...</div>;
+    if (loading && allItems.length === 0) return <LoadingSpinner />;
 
     return (
         <div className="space-y-8 animate-fadeIn pb-20">
