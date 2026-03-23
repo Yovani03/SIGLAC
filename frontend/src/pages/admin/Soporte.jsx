@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import {
     AlertCircle, Clock, Wrench, CheckCircle, MoreHorizontal,
-    MessageSquare, HardDrive, User, Calendar, RefreshCcw, Wrench
+    MessageSquare, HardDrive, User, Calendar, RefreshCcw, Search
 } from 'lucide-react';
 import Button from '../../components/common/Button';
 
@@ -11,6 +11,7 @@ const Soporte = () => {
     const [loading, setLoading] = useState(true);
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         fetchTickets();
@@ -36,6 +37,13 @@ const Soporte = () => {
             console.error("Error updating ticket status:", error);
         }
     };
+
+    const filteredTickets = tickets.filter(t => 
+        t.detalle_problema?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.mobiliario?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.usuario_reporta_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.estado?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -67,14 +75,26 @@ const Soporte = () => {
                 </button>
             </div>
 
+            <div className="relative max-w-md">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Search className="w-5 h-5" />
+                </div>
+                <input
+                    type="text"
+                    placeholder="Buscar por problema, equipo o estado..."
+                    className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all font-medium text-slate-700"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[1, 2, 3].map(n => <div key={n} className="h-48 bg-slate-100 rounded-3xl animate-pulse"></div>)}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {tickets.length === 0 && <div className="col-span-full py-20 text-center text-slate-400 font-medium">No hay reportes activos.</div>}
-                    {tickets.map(ticket => (
+                    {filteredTickets.map(ticket => (
                         <div
                             key={ticket.id_reporte}
                             onClick={() => { setSelectedTicket(ticket); setShowModal(true); }}
@@ -106,6 +126,12 @@ const Soporte = () => {
                             </div>
                         </div>
                     ))}
+                    {filteredTickets.length === 0 && !loading && (
+                        <div className="col-span-full py-20 text-center bg-white rounded-[2.5rem] border border-slate-100 border-dashed">
+                             <Search className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                            <h3 className="text-xl font-bold text-slate-300">No se encontraron reportes</h3>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -114,7 +140,7 @@ const Soporte = () => {
                     <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl overflow-hidden animate-slideUp">
                         <div className="p-8 border-b border-slate-100 bg-slate-50 relative">
                             <button onClick={() => setShowModal(false)} className="absolute top-8 right-8 text-slate-400 hover:text-slate-600 transition-colors">
-                                <RefreshCcw className="w-6 h-6" />
+                                <Search className="w-6 h-6 transform rotate-45" />
                             </button>
                             <div className="flex items-start space-x-4 mb-4">
                                 <div className="p-3 bg-red-100 text-red-600 rounded-2xl">

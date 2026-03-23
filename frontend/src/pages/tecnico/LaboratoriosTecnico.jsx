@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import {
     Layout, Monitor, Users, Settings,
-    ChevronRight, ChevronLeft, MapPin, Cpu, Info, Box
+    ChevronRight, ChevronLeft, MapPin, Cpu, Info, Box, Search
 } from 'lucide-react';
 
 const StationCard = ({ name, estacion }) => {
@@ -37,6 +37,7 @@ const LaboratoriosTecnico = () => {
     const [loading, setLoading] = useState(true);
     const [selectedLab, setSelectedLab] = useState(null);
     const [estaciones, setEstaciones] = useState([]);
+    const [searchTermLab, setSearchTermLab] = useState('');
 
     useEffect(() => {
         const fetchLabs = async () => {
@@ -65,6 +66,11 @@ const LaboratoriosTecnico = () => {
         }
     };
 
+    const filteredLaboratorios = laboratorios.filter(lab => 
+        lab.nombre?.toLowerCase().includes(searchTermLab.toLowerCase()) ||
+        lab.ubicacion?.toLowerCase().includes(searchTermLab.toLowerCase())
+    );
+
     if (loading && !selectedLab) return <LoadingSpinner />;
 
     return (
@@ -78,6 +84,21 @@ const LaboratoriosTecnico = () => {
                     <p className="text-slate-500 text-sm font-medium">Consulta de infraestructura y distribución de estaciones.</p>
                 </div>
             </div>
+
+            {!selectedLab && (
+                <div className="mb-8 relative max-w-md">
+                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Search className="w-5 h-5" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Buscar laboratorio por nombre o ubicación..."
+                        className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-slate-700"
+                        value={searchTermLab}
+                        onChange={(e) => setSearchTermLab(e.target.value)}
+                    />
+                </div>
+            )}
 
             {selectedLab ? (
                 <div className="animate-fadeIn space-y-6">
@@ -172,8 +193,9 @@ const LaboratoriosTecnico = () => {
                     </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {laboratorios.map(lab => (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {filteredLaboratorios.map(lab => (
                         <div
                             key={lab.id_laboratorio}
                             onClick={() => handleSelectLab(lab)}
@@ -212,6 +234,13 @@ const LaboratoriosTecnico = () => {
                         </div>
                     ))}
                 </div>
+                {filteredLaboratorios.length === 0 && !loading && (
+                    <div className="py-20 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100">
+                        <Search className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                        <h3 className="text-xl font-black text-slate-300 uppercase tracking-widest">No se encontraron laboratorios</h3>
+                    </div>
+                )}
+                </>
             )}
         </div>
     );

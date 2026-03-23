@@ -8,7 +8,7 @@ from .models import (
     Rol, Usuario, Area, Categoria, Laboratorio, Mobiliario, EquipoComputo,
     TipoMobiliario, Estacion,
     Mantenimiento, HorarioLaboratorio, Software, ConfiguracionSistema, ReporteFallo,
-    Bitacora, AsignacionEquipo, Reservacion, Asistencia
+    Bitacora, AsignacionEquipo, Reservacion, Asistencia, Notificacion
 )
 from .serializers import (
     RolSerializer, UsuarioSerializer, AreaSerializer, CategoriaSerializer,
@@ -17,7 +17,7 @@ from .serializers import (
     HorarioLaboratorioSerializer,
     SoftwareSerializer, ConfiguracionSistemaSerializer, ReporteFalloSerializer,
     BitacoraSerializer, AsignacionEquipoSerializer, ReservacionSerializer,
-    PasswordUpdateSerializer, AsistenciaSerializer, MantenimientoSerializer
+    PasswordUpdateSerializer, AsistenciaSerializer, MantenimientoSerializer, NotificacionSerializer
 )
 from .permissions import IsAdminUserRole, IsDocenteUserRole, IsOwnerOrReadOnly, IsDocenteOrAdminUser, IsTecnicoUserRole, IsOwnerOrAdminOrTecnico
 from django.contrib.auth.hashers import check_password
@@ -289,10 +289,6 @@ class HorarioLaboratorioViewSet(viewsets.ModelViewSet):
         # Determine role name
         rol_nombre = user.rol.nombre_rol.lower() if user.rol else ''
         
-        # If it's a teacher, show only their own schedules
-        if rol_nombre in ['docente', 'profesor'] and not rol_nombre in ['admin', 'administrador']:
-            queryset = queryset.filter(docente=user)
-        
         # Filter by lab if provided
         lab_id = self.request.query_params.get('laboratorio')
         if lab_id:
@@ -349,14 +345,64 @@ class ReporteFalloViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def perform_create(self, serializer):
-        serializer.save(usuario_reporta=self.request.user)
+        reporte = serializer.save(usuario_reporta=self.request.user)
+        
+        # Notificar a todos los Admins y Técnicos sobre el nuevo reporte
+        destinatarios = Usuario.objects.filter(
+            Q(rol__nombre_rol__icontains='admin') | 
+            Q(rol__nombre_rol__icontains='tecnico')
+        ).exclude(id=self.request.user.id)
+        
+        for user in destinatarios:
+            Notificacion.objects.create(
+                usuario=user,
+                mensaje=f"Nuevo reporte de {self.request.user.nombre}: {reporte.detalle_problema[:30]}...",
+                tipo='WARNING',
+                link='/admin/reportes' if 'admin' in user.rol.nombre_rol.lower() else '/tecnico/reportes'
+            )
 
     def perform_update(self, serializer):
+        instance = self.get_object()
+        old_estado = instance.estado
+        
         estado = self.request.data.get('estado')
         if estado == 'RESUELTO':
             serializer.save(fecha_resolucion=timezone.now())
         else:
             serializer.save()
+            
+        # Notificar al docente si el estado cambió
+        new_instance = self.get_object()
+        if old_estado != new_instance.estado:
+            mensaje = f"Tu reporte '{new_instance.detalle_problema[:30]}...' ha cambiado a: {new_instance.get_estado_display()}"
+            tipo = 'SUCCESS' if new_instance.estado == 'RESUELTO' else 'INFO'
+            
+            Notificacion.objects.create(
+                usuario=new_instance.usuario_reporta,
+                mensaje=mensaje,
+                tipo=tipo,
+                link='/docente/reportes'
+            )
+
+class NotificacionViewSet(viewsets.ModelViewSet):
+    queryset = Notificacion.objects.all()
+    serializer_class = NotificacionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Notificacion.objects.filter(usuario=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='marcar-todas-leidas')
+    def marcar_todas_leidas(self, request):
+        self.get_queryset().update(leida=True)
+        return Response({'status': 'ok'})
+
+    @action(detail=True, methods=['post'], url_path='marcar-leida')
+    def marcar_leida(self, request, pk=None):
+        notif = self.get_object()
+        notif.leida = True
+        notif.save()
+        return Response({'status': 'ok'})
 
 class BitacoraViewSet(viewsets.ModelViewSet):
     queryset = Bitacora.objects.all()

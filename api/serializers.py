@@ -4,7 +4,8 @@ from .models import (
     Rol, Usuario, Area, Categoria, Laboratorio, Mobiliario, EquipoComputo,
     TipoMobiliario, Estacion,
     Mantenimiento, ReporteFallo, AsignacionEquipo, 
-    HorarioLaboratorio, Bitacora, Asistencia, Software, ConfiguracionSistema, Reservacion
+    HorarioLaboratorio, Bitacora, Asistencia, Software, ConfiguracionSistema, Reservacion,
+    Notificacion
 )
 
 class RolSerializer(serializers.ModelSerializer):
@@ -256,3 +257,7 @@ class ReservacionSerializer(serializers.ModelSerializer):
 class PasswordUpdateSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
+class NotificacionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notificacion
+        fields = '__all__'

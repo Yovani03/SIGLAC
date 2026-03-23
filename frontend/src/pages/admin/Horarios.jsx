@@ -19,6 +19,7 @@ const Horarios = () => {
     const [editingId, setEditingId] = useState(null);
     const [selectedLabId, setSelectedLabId] = useState(null);
     const [activeTab, setActiveTab] = useState('monitoreo'); // 'monitoreo' or 'gestion'
+    const [searchTerm, setSearchTerm] = useState('');
     const [selectedBlocks, setSelectedBlocks] = useState([]);
     const [editBlockData, setEditBlockData] = useState({
         dia_semana: 'Lunes',
@@ -186,8 +187,15 @@ const Horarios = () => {
         }
     };
 
-    const labsDisponibles = estadoLabs.filter(l => !l.ocupado);
-    const labsOcupados = estadoLabs.filter(l => l.ocupado);
+    const labsDisponibles = estadoLabs.filter(l => !l.ocupado && (
+        l.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        l.ubicacion?.toLowerCase().includes(searchTerm.toLowerCase())
+    ));
+    const labsOcupados = estadoLabs.filter(l => l.ocupado && (
+        l.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        l.detalles?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        l.docente_nombre?.toLowerCase().includes(searchTerm.toLowerCase())
+    ));
 
     const filteredHorarios = selectedLabId
         ? horariosFijos.filter(h => h.laboratorio === parseInt(selectedLabId))
@@ -261,6 +269,21 @@ const Horarios = () => {
                     Gestión de Horarios Fijos
                 </button>
             </div>
+
+            {activeTab === 'monitoreo' && (
+                <div className="relative max-w-md">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Search className="w-5 h-5" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Buscar por lab, materia o docente..."
+                        className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            )}
 
             {activeTab === 'monitoreo' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -360,33 +383,52 @@ const Horarios = () => {
                 <div className="space-y-6 animate-fadeIn">
                     {!selectedLabId ? (
                         /* Paso 1: Selección de Laboratorio */
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div className="col-span-full mb-2">
-                                <h3 className="text-xl font-bold text-slate-800">Selecciona un Laboratorio</h3>
-                                <p className="text-slate-500">Elige un espacio para gestionar sus horarios semanales</p>
+                        <div className="space-y-6">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div className="mb-2">
+                                    <h3 className="text-xl font-bold text-slate-800">Selecciona un Laboratorio</h3>
+                                    <p className="text-slate-500">Elige un espacio para gestionar sus horarios semanales</p>
+                                </div>
+                                <div className="relative w-full md:w-80 group">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
+                                    <input
+                                        type="text"
+                                        placeholder="Filtrar laboratorios..."
+                                        className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-slate-700 text-sm"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
                             </div>
-                            {laboratorios.map(lab => {
-                                const count = horariosFijos.filter(h => h.laboratorio === lab.id_laboratorio).length;
-                                return (
-                                    <button
-                                        key={lab.id_laboratorio}
-                                        onClick={() => setSelectedLabId(lab.id_laboratorio)}
-                                        className="text-left p-6 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all group relative overflow-hidden"
-                                    >
-                                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                            <MapPin className="w-12 h-12 text-indigo-600" />
-                                        </div>
-                                        <h4 className="font-black text-slate-800 text-xl mb-1">{lab.nombre}</h4>
-                                        <p className="text-slate-500 text-xs font-medium mb-4">{lab.ubicacion}</p>
-                                        <div className="flex items-center justify-between mt-auto">
-                                            <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase">
-                                                {count} {count === 1 ? 'Horario' : 'Horarios'}
-                                            </span>
-                                            <span className="text-indigo-600 font-bold text-sm group-hover:translate-x-1 transition-transform">Ver horarios →</span>
-                                        </div>
-                                    </button>
-                                );
-                            })}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {laboratorios
+                                    .filter(lab =>
+                                        lab.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        lab.ubicacion?.toLowerCase().includes(searchTerm.toLowerCase())
+                                    )
+                                    .map(lab => {
+                                        const count = horariosFijos.filter(h => h.laboratorio === lab.id_laboratorio).length;
+                                        return (
+                                            <button
+                                                key={lab.id_laboratorio}
+                                                onClick={() => setSelectedLabId(lab.id_laboratorio)}
+                                                className="text-left p-6 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all group relative overflow-hidden"
+                                            >
+                                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                                    <MapPin className="w-12 h-12 text-indigo-600" />
+                                                </div>
+                                                <h4 className="font-black text-slate-800 text-xl mb-1">{lab.nombre}</h4>
+                                                <p className="text-slate-500 text-xs font-medium mb-4">{lab.ubicacion}</p>
+                                                <div className="flex items-center justify-between mt-auto">
+                                                    <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase">
+                                                        {count} {count === 1 ? 'Horario' : 'Horarios'}
+                                                    </span>
+                                                    <span className="text-indigo-600 font-bold text-sm group-hover:translate-x-1 transition-transform">Ver horarios →</span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                            </div>
                         </div>
                     ) : (
                         /* Paso 2: Vista de Calendario del Laboratorio */

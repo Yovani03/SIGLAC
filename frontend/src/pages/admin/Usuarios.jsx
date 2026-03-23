@@ -23,6 +23,7 @@ const Usuarios = () => {
         password: '',
         activo: true
     });
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         fetchData();
@@ -132,6 +133,13 @@ const Usuarios = () => {
         }
     };
 
+    const filteredUsuarios = usuarios.filter(u => 
+        u.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.apellido_paterno?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.correo_institucional?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     if (loading && usuarios.length === 0) return <LoadingSpinner />;
 
     return (
@@ -155,6 +163,19 @@ const Usuarios = () => {
                 </Button>
             </div>
 
+            <div className="relative max-w-md">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Search className="w-5 h-5" />
+                </div>
+                <input
+                    type="text"
+                    placeholder="Buscar usuario por nombre, correo o ID..."
+                    className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left min-w-[800px] md:min-w-full">
@@ -168,7 +189,7 @@ const Usuarios = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {usuarios.map((u) => (
+                            {filteredUsuarios.map((u) => (
                                 <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="px-6 py-4 text-slate-500 text-sm font-mono">{u.username}</td>
                                     <td className="px-6 py-4 text-slate-700">
@@ -230,6 +251,13 @@ const Usuarios = () => {
                     </table>
                 </div>
             </div>
+
+            {filteredUsuarios.length === 0 && !loading && (
+                <div className="py-20 text-center bg-white rounded-2xl border border-slate-100 border-dashed">
+                    <Search className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-slate-300">No se encontraron usuarios</h3>
+                </div>
+            )}
 
             {showModal && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">

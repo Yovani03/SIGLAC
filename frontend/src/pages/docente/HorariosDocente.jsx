@@ -17,9 +17,20 @@ const HorariosDocente = () => {
     const [docentes, setDocentes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedLab, setSelectedLab] = useState('all');
+    const [selectedLab, setSelectedLab] = useState('');
+    const [selectedGrado, setSelectedGrado] = useState('all');
+    const [selectedGrupo, setSelectedGrupo] = useState('all');
+    const [selectedCarrera, setSelectedCarrera] = useState('all');
+    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
-    // Form States
+    const [misOpciones, setMisOpciones] = useState({
+        grados: [],
+        grupos: [],
+        carreras: []
+    });
+
+    const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const horasOpciones = Array.from({ length: 16 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`);
     const [showForm, setShowForm] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [formData, setFormData] = useState({
@@ -33,7 +44,7 @@ const HorariosDocente = () => {
 
     const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-    const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
 
     useEffect(() => {
         fetchData();
@@ -50,6 +61,28 @@ const HorariosDocente = () => {
             setHorarios(horariosRes.data);
             setLaboratorios(labsRes.data);
             setDocentes(docentesRes.data);
+
+            // Seleccionar el primer laboratorio por defecto si no hay uno seleccionado
+            if (labsRes.data.length > 0 && !selectedLab) {
+                setSelectedLab(labsRes.data[0].id_laboratorio.toString());
+            }
+
+            // Extraer opciones personalizadas para el docente logueado (usando == para evitar problemas de tipos)
+            const misHorarios = horariosRes.data.filter(h => h.docente == user.id);
+            setMisOpciones({
+                grados: [...new Set(misHorarios.map(h => h.grado).filter(Boolean))].sort(),
+                grupos: [...new Set(misHorarios.map(h => h.grupo).filter(Boolean))].sort(),
+                carreras: [...new Set(misHorarios.map(h => h.carrera).filter(Boolean))].sort()
+            });
+            
+            // Fallback: Si el docente no tiene horarios asignados, mostrar todos los disponibles para evitar selectores vacíos
+            if (misHorarios.length === 0) {
+                setMisOpciones({
+                    grados: [...new Set(horariosRes.data.map(h => h.grado).filter(Boolean))].sort(),
+                    grupos: [...new Set(horariosRes.data.map(h => h.grupo).filter(Boolean))].sort(),
+                    carreras: [...new Set(horariosRes.data.map(h => h.carrera).filter(Boolean))].sort()
+                });
+            }
         } catch (error) {
             console.error("Error fetching data", error);
             toast.error("Error al cargar los horarios");
@@ -122,14 +155,31 @@ const HorariosDocente = () => {
             item.docente_nombre?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesLab = selectedLab === 'all' || item.laboratorio === parseInt(selectedLab);
+        const matchesGrado = selectedGrado === 'all' || item.grado === selectedGrado;
+        const matchesGrupo = selectedGrupo === 'all' || item.grupo === selectedGrupo;
+        const matchesCarrera = selectedCarrera === 'all' || item.carrera === selectedCarrera;
 
-        return matchesSearch && matchesLab;
-    }).sort((a, b) => {
-        const diaA = dias.indexOf(a.dia_semana);
-        const diaB = dias.indexOf(b.dia_semana);
-        if (diaA !== diaB) return diaA - diaB;
-        return a.hora_inicio.localeCompare(b.hora_inicio);
+        return matchesSearch && matchesLab && matchesGrado && matchesGrupo && matchesCarrera;
     });
+
+    const isHighlight = (item) => {
+        // Resaltar en verde las clases asignadas por ese docente
+        const sameDocente = item.docente == user.id;
+        const matchesGroupFilters = (selectedGrado === 'all' || item.grado === selectedGrado) &&
+                                     (selectedGrupo === 'all' || item.grupo === selectedGrupo) &&
+                                     (selectedCarrera === 'all' || item.carrera === selectedCarrera);
+        
+        return sameDocente && matchesGroupFilters && (selectedGrado !== 'all' || selectedGrupo !== 'all' || selectedCarrera !== 'all');
+    };
+
+    const getHorarioAt = (dia, hora) => {
+        return filteredItems.find(h => {
+            const h_inicio = parseInt(h.hora_inicio.split(':')[0]);
+            const h_fin = parseInt(h.hora_fin.split(':')[0]);
+            const check_h = parseInt(hora.split(':')[0]);
+            return h.dia_semana === dia && check_h >= h_inicio && check_h < h_fin;
+        });
+    };
 
     if (loading) return <LoadingSpinner />;
 
@@ -151,104 +201,173 @@ const HorariosDocente = () => {
                 )}
             </div>
 
-            {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="relative md:col-span-2">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <input
-                        type="text"
-                        placeholder="Buscar por actividad o docente..."
-                        className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-slate-700"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <div className="relative">
-                    <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <select
-                        className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm outline-none appearance-none font-bold text-slate-700"
-                        value={selectedLab}
-                        onChange={(e) => setSelectedLab(e.target.value)}
-                    >
-                        <option value="all">Todos los Laboratorios</option>
-                        {laboratorios.map(lab => (
-                            <option key={lab.id_laboratorio} value={lab.id_laboratorio}>{lab.nombre}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            {/* Table */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                                <th className="px-8 py-6">Día</th>
-                                <th className="px-8 py-6">Horario</th>
-                                <th className="px-8 py-6">Laboratorio</th>
-                                <th className="px-8 py-6">Actividad / Docente</th>
-                                {isAdmin && <th className="px-8 py-6 text-right">Acciones</th>}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {filteredItems.map((item) => (
-                                <tr key={item.id_horario} className="hover:bg-slate-50/50 transition-colors group">
-                                    <td className="px-8 py-6">
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${['Lunes', 'Miércoles', 'Viernes'].includes(item.dia_semana) ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
-                                            }`}>
-                                            {item.dia_semana}
-                                        </span>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center text-slate-700 font-bold">
-                                            <Clock className="w-4 h-4 mr-2 text-slate-300" />
-                                            {item.hora_inicio.substring(0, 5)} - {item.hora_fin.substring(0, 5)}
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center text-slate-700 font-bold">
-                                            <MapPin className="w-4 h-4 mr-2 text-indigo-400" />
-                                            {item.laboratorio_nombre}
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <p className="font-black text-slate-800">{item.descripcion_actividad}</p>
-                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-tight flex items-center mt-1">
-                                            <User className="w-3 h-3 mr-1" /> {item.docente_nombre || 'N/A'}
-                                        </p>
-                                    </td>
-                                    {isAdmin && (
-                                        <td className="px-8 py-6 text-right">
-                                            <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => openEdit(item)}
-                                                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => setDeleteConfirm({ id: item.id_horario, name: `${item.dia_semana} (${item.hora_inicio})` })}
-                                                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    )}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {filteredItems.length === 0 && (
-                    <div className="p-20 text-center">
-                        <Calendar className="w-16 h-16 text-slate-100 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-slate-300">No hay horarios registrados</h3>
+            {/* Advanced Filters */}
+            <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+                <div className="flex flex-col lg:flex-row gap-4">
+                    <div className="flex-1 relative">
+                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Buscar por actividad o docente..."
+                            className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-slate-700"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
-                )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Laboratorio</label>
+                        <select
+                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none appearance-none font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20"
+                            value={selectedLab}
+                            onChange={(e) => setSelectedLab(e.target.value)}
+                        >
+                            {laboratorios.map(lab => (
+                                <option key={lab.id_laboratorio} value={lab.id_laboratorio}>{lab.nombre}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grado</label>
+                        <select
+                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none appearance-none font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20"
+                            value={selectedGrado}
+                            onChange={(e) => setSelectedGrado(e.target.value)}
+                        >
+                            <option value="all">Mis Grados</option>
+                            {misOpciones.grados.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grupo</label>
+                        <select
+                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none appearance-none font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20"
+                            value={selectedGrupo}
+                            onChange={(e) => setSelectedGrupo(e.target.value)}
+                        >
+                            <option value="all">Mis Grupos</option>
+                            {misOpciones.grupos.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Carrera</label>
+                        <select
+                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none appearance-none font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20"
+                            value={selectedCarrera}
+                            onChange={(e) => setSelectedCarrera(e.target.value)}
+                        >
+                            <option value="all">Mis Carreras</option>
+                            {misOpciones.carreras.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-2">
+                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                        <div 
+                            className="px-4 py-2 rounded-lg text-xs font-black bg-white shadow-sm text-indigo-600"
+                        >
+                            Vista Calendario
+                        </div>
+                    </div>
+                    {(selectedLab !== 'all' || selectedGrado !== 'all' || selectedGrupo !== 'all' || selectedCarrera !== 'all' || searchTerm !== '') && (
+                        <button 
+                            onClick={() => {
+                                setSelectedLab('all'); setSelectedGrado('all'); setSelectedGrupo('all'); 
+                                setSelectedCarrera('all'); setSearchTerm('');
+                            }}
+                            className="text-[10px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-widest flex items-center"
+                        >
+                            <X className="w-3 h-3 mr-1" /> Limpiar Filtros
+                        </button>
+                    )}
+                </div>
+            </div>            {/* Content View */}
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden p-4 md:p-8">
+                <div className="overflow-x-auto">
+                    <div className="min-w-[1000px]">
+                        {/* Grid Header */}
+                        <div className="grid grid-cols-8 border-b border-slate-100 mb-2">
+                            <div className="p-4"></div>
+                            {dias.map(dia => (
+                                <div key={dia} className="p-4 text-center">
+                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">{dia}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Grid Body */}
+                        <div className="space-y-1">
+                            {horasOpciones.map(hora => (
+                                <div key={hora} className="grid grid-cols-8 group">
+                                    <div className="p-4 flex items-center justify-center border-r border-slate-50 group-hover:bg-slate-50/50 transition-colors">
+                                        <span className="text-[11px] font-black text-slate-400">{hora}</span>
+                                    </div>
+                                    {dias.map(dia => {
+                                        const item = getHorarioAt(dia, hora);
+                                        const highlight = item ? isHighlight(item) : false;
+                                        
+                                        return (
+                                            <div 
+                                                key={dia} 
+                                                className={`h-24 m-1 rounded-2xl border transition-all duration-300 flex flex-col items-center justify-center p-2 text-center relative overflow-hidden group/cell ${
+                                                    item 
+                                                        ? (highlight 
+                                                            ? 'bg-emerald-500 border-emerald-600 text-white shadow-lg shadow-emerald-100 scale-[1.02] z-10' 
+                                                            : 'bg-white border-slate-100 text-slate-700 hover:border-indigo-200 hover:shadow-md') 
+                                                        : 'bg-slate-50/30 border-dashed border-slate-100'
+                                                }`}
+                                            >
+                                                {item ? (
+                                                    <>
+                                                        <span className={`text-[9px] font-black uppercase tracking-tighter mb-1 opacity-80 ${highlight ? 'text-emerald-100' : 'text-indigo-500'}`}>
+                                                            {item.hora_inicio.substring(0, 5)} - {item.hora_fin.substring(0, 5)}
+                                                        </span>
+                                                        <p className={`text-[10px] font-black leading-tight line-clamp-2 ${highlight ? 'text-white' : 'text-slate-800'}`}>
+                                                            {item.descripcion_actividad}
+                                                        </p>
+                                                        {highlight && (
+                                                            <div className="absolute top-1 right-1">
+                                                                <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse shadow-sm"></div>
+                                                            </div>
+                                                        )}
+                                                        {!highlight && isAdmin && (
+                                                            <button 
+                                                                  onClick={() => openEdit(item)}
+                                                                className="absolute inset-0 bg-indigo-600/10 opacity-0 group-hover/cell:opacity-100 flex items-center justify-center transition-all rounded-2xl"
+                                                            >
+                                                                <Edit2 className="w-4 h-4 text-indigo-600" />
+                                                            </button>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center opacity-0 group-hover/cell:opacity-100 transition-opacity">
+                                                        <span className="text-[10px] text-slate-300 font-black uppercase tracking-widest">Libre</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            {filteredItems.length === 0 && (
+                <div className="py-32 flex flex-col items-center justify-center text-center space-y-6 bg-slate-50/50 rounded-[4rem] border-4 border-dashed border-slate-100">
+                    <div className="p-8 bg-white rounded-full shadow-2xl shadow-slate-200 animate-pulse">
+                        <Calendar className="w-16 h-16 text-slate-200" />
+                    </div>
+                    <div>
+                        <h3 className="text-3xl font-black text-slate-300 tracking-tighter">Planificador Vacío</h3>
+                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">No se encontraron horarios con los filtros actuales</p>
+                    </div>
+                </div>
+            )}
 
             {/* Modal Form */}
             {showForm && (

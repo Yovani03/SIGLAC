@@ -13,11 +13,10 @@ const NotificationDropdown = ({ userRole }) => {
     const fetchNotifications = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/reportes-fallos/');
-            // Filtrar pendientes y ordenar por fecha (más reciente primero)
-            const pendientes = response.data.filter(r => r.estado === 'PENDIENTE');
-            pendientes.sort((a, b) => new Date(b.fecha_reporte) - new Date(a.fecha_reporte));
-            setNotifications(pendientes.slice(0, 5)); // Mostrar solo los últimos 5
+            const response = await api.get('/notificaciones/');
+            // Filtrar no leídas y ordenar por fecha (más reciente primero)
+            const activas = response.data.filter(n => !n.leida);
+            setNotifications(activas.slice(0, 5)); // Mostrar solo los últimos 5
         } catch (error) {
             console.error('Error fetching notifications:', error);
         } finally {
@@ -27,7 +26,7 @@ const NotificationDropdown = ({ userRole }) => {
 
     useEffect(() => {
         fetchNotifications();
-        // Opcional: Polling cada 60 segundos
+        // Polling cada 60 segundos
         const interval = setInterval(fetchNotifications, 60000);
         return () => clearInterval(interval);
     }, []);
@@ -45,14 +44,25 @@ const NotificationDropdown = ({ userRole }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen]);
 
-    const handleNotificationClick = () => {
-        setIsOpen(false);
-        if (userRole === 'ADMIN') {
-            navigate('/admin');
-        } else if (userRole === 'TECNICO') {
-            navigate('/tecnico/reportes');
-        } else {
-            navigate('/docente/reportes');
+    const handleNotificationClick = async (notif) => {
+        try {
+            await api.post(`/notificaciones/${notif.id_notificacion}/marcar-leida/`);
+            setIsOpen(false);
+            fetchNotifications();
+            if (notif.link) {
+                navigate(notif.link);
+            }
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    };
+
+    const handleMarkAllRead = async () => {
+        try {
+            await api.post('/notificaciones/marcar-todas-leidas/');
+            fetchNotifications();
+        } catch (error) {
+            console.error('Error marking all read:', error);
         }
     };
 
@@ -71,14 +81,26 @@ const NotificationDropdown = ({ userRole }) => {
             {isOpen && (
                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden animate-slideUp">
                     <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                        <h3 className="font-bold text-slate-800">Notificaciones</h3>
-                        <button
-                            onClick={fetchNotifications}
-                            disabled={loading}
-                            className="text-slate-400 hover:text-indigo-600 transition-colors"
-                        >
-                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        </button>
+                        <div className="flex items-center space-x-2">
+                            <h3 className="font-bold text-slate-800">Notificaciones</h3>
+                            <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full text-[10px] font-black">{notifications.length}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <button
+                                onClick={handleMarkAllRead}
+                                className="text-[10px] font-black text-indigo-600 hover:underline uppercase tracking-wider"
+                                title="Marcar todas como leídas"
+                            >
+                                Leer Todas
+                            </button>
+                            <button
+                                onClick={fetchNotifications}
+                                disabled={loading}
+                                className="text-slate-400 hover:text-indigo-600 transition-colors"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                            </button>
+                        </div>
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                         {notifications.length === 0 ? (
@@ -90,18 +112,24 @@ const NotificationDropdown = ({ userRole }) => {
                             <div className="divide-y divide-slate-50">
                                 {notifications.map((notif) => (
                                     <div
-                                        key={notif.id_reporte}
-                                        onClick={handleNotificationClick}
-                                        className="p-4 hover:bg-indigo-50/50 cursor-pointer transition-colors"
+                                        key={notif.id_notificacion}
+                                        onClick={() => handleNotificationClick(notif)}
+                                        className="p-4 hover:bg-slate-50 cursor-pointer transition-colors"
                                     >
                                         <div className="flex items-start">
-                                            <AlertCircle className="w-5 h-5 text-indigo-500 mt-0.5 mr-3 flex-shrink-0" />
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0 ${
+                                                notif.tipo === 'SUCCESS' ? 'bg-emerald-100 text-emerald-600' : 
+                                                notif.tipo === 'WARNING' ? 'bg-amber-100 text-amber-600' :
+                                                'bg-indigo-100 text-indigo-600'
+                                            }`}>
+                                                <AlertCircle className="w-5 h-5" />
+                                            </div>
                                             <div>
-                                                <p className="text-sm font-medium text-slate-800 line-clamp-2">
-                                                    Nuevo reporte: {notif.detalle_problema}
+                                                <p className="text-sm font-bold text-slate-800 leading-tight">
+                                                    {notif.mensaje}
                                                 </p>
-                                                <span className="text-xs text-slate-400 mt-1 block">
-                                                    {new Date(notif.fecha_reporte).toLocaleDateString()}
+                                                <span className="text-[10px] text-slate-400 mt-1 block font-medium">
+                                                    {new Date(notif.fecha).toLocaleString()}
                                                 </span>
                                             </div>
                                         </div>
@@ -110,14 +138,6 @@ const NotificationDropdown = ({ userRole }) => {
                             </div>
                         )}
                     </div>
-                    {notifications.length > 0 && (
-                        <div
-                            onClick={handleNotificationClick}
-                            className="p-3 text-center border-t border-slate-100 text-sm font-bold text-indigo-600 hover:bg-slate-50 cursor-pointer transition-colors"
-                        >
-                            Ver todos los reportes
-                        </div>
-                    )}
                 </div>
             )}
         </div>

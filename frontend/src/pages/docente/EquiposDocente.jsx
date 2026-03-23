@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
     Cpu, HardDrive, Layout, Plus, Info, Box, Search,
     Monitor, Save, Server, X, MousePointer2, ChevronRight, ChevronLeft, MapPin, Eye,
-    Trash2, Edit2, Settings, Users
+    Trash2, Edit2, Settings, Users, AlertTriangle
 } from 'lucide-react';
 
 const StationCard = ({ name, estacion, onClick }) => {

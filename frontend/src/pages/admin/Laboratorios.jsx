@@ -70,6 +70,7 @@ const Laboratorios = () => {
         responsable: '',
         activo: true
     });
+    const [searchTermLab, setSearchTermLab] = useState('');
     const [notification, setNotification] = useState(null);
 
     const showToast = (message, type = 'success') => {
@@ -98,6 +99,11 @@ const Laboratorios = () => {
         }
     };
 
+    const filteredLaboratorios = laboratorios.filter(lab => 
+        lab.nombre?.toLowerCase().includes(searchTermLab.toLowerCase()) ||
+        lab.ubicacion?.toLowerCase().includes(searchTermLab.toLowerCase())
+    );
+
     const fetchEstaciones = async (labId) => {
         setLoadingEstaciones(true);
         try {
@@ -112,7 +118,6 @@ const Laboratorios = () => {
 
     const handleSelectLab = (lab) => {
         setSelectedLab(lab);
-        // Carga inmediata si ya vienen en el objeto lab
         if (lab.estaciones) {
             setEstaciones(lab.estaciones);
         } else {
@@ -127,7 +132,6 @@ const Laboratorios = () => {
                 api.get('/equipos-computo/'),
                 api.get('/mobiliario/')
             ]);
-            // Filtrar ítems que no tengan estación asignada (stock global)
             setAvailablePCs(pcsRes.data.filter(pc => !pc.estacion));
             setAvailableMobiliario(hwRes.data.filter(hw => !hw.estacion));
         } catch (error) {
@@ -137,29 +141,22 @@ const Laboratorios = () => {
 
     const handleAssign = async (type, itemId, stationId) => {
         const endpoint = type === 'pc' ? '/equipos-computo/' : '/mobiliario/';
-        const itemInfo = type === 'pc'
-            ? availablePCs.find(pc => pc.numero_inventario === itemId)
-            : availableMobiliario.find(hw => hw.numero_inventario === itemId);
-
         try {
-            // Se asigna tanto el laboratorio actual como la estación específica
             await api.patch(`${endpoint}${itemId}/`, {
                 estacion: stationId,
                 laboratorio: selectedLab.id_laboratorio
             });
-            // Recargar datos
             fetchEstaciones(selectedLab.id_laboratorio);
             fetchAvailableItems();
             showToast("Equipo vinculado a la estación correctamente");
 
-            // Actualizar modal si está abierto
             const res = await api.get(`/estaciones/${selectedEstacion.id_estacion}/`);
             setSelectedEstacion(res.data);
             setSearchTermPC('');
             setSearchTermHW('');
         } catch (error) {
             console.error("Error linking item:", error);
-            showToast("Error al asociar el ítem. Verifique si el número de serie es válido.", "error");
+            showToast("Error al asociar el ítem.", "error");
         }
     };
 
@@ -168,7 +165,7 @@ const Laboratorios = () => {
         try {
             await api.patch(`${endpoint}${itemId}/`, { estacion: null });
             fetchEstaciones(selectedLab.id_laboratorio);
-            fetchAvailableItems(selectedLab.id_laboratorio);
+            fetchAvailableItems();
 
             const res = await api.get(`/estaciones/${selectedEstacion.id_estacion}/`);
             setSelectedEstacion(res.data);
@@ -191,18 +188,16 @@ const Laboratorios = () => {
         if (!result.isConfirmed) return;
 
         try {
-            // Desvincular PC si tiene
             if (station.equipo_detalle) {
                 await api.patch(`/equipos-computo/${station.equipo_detalle.id_equipo}/`, { estacion: null });
             }
-            // Desvincular periféricos
             if (station.perifericos_detalle) {
                 for (const p of station.perifericos_detalle) {
                     await api.patch(`/mobiliario/${p.id_mobiliario}/`, { estacion: null });
                 }
             }
             fetchEstaciones(selectedLab.id_laboratorio);
-            fetchAvailableItems(selectedLab.id_laboratorio);
+            fetchAvailableItems();
             setShowAssignmentModal(false);
         } catch (error) {
             console.error("Error clearing station:", error);
@@ -214,12 +209,6 @@ const Laboratorios = () => {
         if (est) {
             setSelectedEstacion(est);
             setShowAssignmentModal(true);
-        } else {
-            // El usuario ya no ve una confirmación nativa molesta, 
-            // pero para estaciones inexistentes podriamos simplemente no hacer nada 
-            // o crearla bajo demanda silenciosamente si se quiere todo funcional.
-            // Dado que el usuario pidió que todo sea funcional desde el inicio,
-            // ya no debería entrar aquí si las estaciones se crearon al crear el lab.
         }
     };
 
@@ -228,6 +217,7 @@ const Laboratorios = () => {
         setSearchTermPC('');
         setSearchTermHW('');
     };
+
     const handleOpenModal = (lab = null) => {
         if (lab) {
             setIsEditing(true);
@@ -255,7 +245,6 @@ const Laboratorios = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            // Asegurar que los valores numéricos sean enteros
             const labData = {
                 ...currentLab,
                 capacidad: parseInt(currentLab.capacidad) || 0,
@@ -268,7 +257,6 @@ const Laboratorios = () => {
             } else {
                 const res = await api.post('/laboratorios/', labData);
                 showToast(`Laboratorio "${labData.nombre}" creado con éxito.`);
-                // Opcionalmente podemos seleccionar el nuevo lab automáticamente para ver el mapa
                 setSelectedLab(res.data);
                 if (res.data.estaciones) setEstaciones(res.data.estaciones);
             }
@@ -276,10 +264,7 @@ const Laboratorios = () => {
             fetchData();
         } catch (error) {
             console.error("Error saving laboratory detail:", error.response?.data || error.message);
-            const errorMsg = error.response?.data
-                ? JSON.stringify(error.response.data)
-                : "Error al procesar la solicitud. Revisa la consola.";
-            showToast(errorMsg, "error");
+            showToast("Error al procesar la solicitud.", "error");
         }
     };
 
@@ -329,14 +314,31 @@ const Laboratorios = () => {
                         <p className="text-slate-500 text-sm">Registro, edición, eliminación y consulta de laboratorios registrados.</p>
                     </div>
                 </div>
-                <Button
-                    onClick={() => handleOpenModal()}
-                    variant="primary"
-                    icon={Plus}
-                >
-                    Nuevo Laboratorio
-                </Button>
+                {!selectedLab && (
+                    <Button
+                        onClick={() => handleOpenModal()}
+                        variant="primary"
+                        icon={Plus}
+                    >
+                        Nuevo Laboratorio
+                    </Button>
+                )}
             </div>
+
+            {!selectedLab && (
+                <div className="mb-8 relative max-w-md">
+                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Search className="w-5 h-5" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Buscar laboratorio por nombre o ubicación..."
+                        className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-slate-700"
+                        value={searchTermLab}
+                        onChange={(e) => setSearchTermLab(e.target.value)}
+                    />
+                </div>
+            )}
 
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -347,7 +349,6 @@ const Laboratorios = () => {
             ) : selectedLab ? (
                 /* VISTA DETALLADA DEL LABORATORIO */
                 <div className="animate-fadeIn space-y-6">
-                    {/* Botón Volver y Header de Detalle */}
                     <div className="flex items-center justify-between bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
                         <div className="flex items-center space-x-6">
                             <button
@@ -388,7 +389,6 @@ const Laboratorios = () => {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        {/* Panel Lateral: Estadísticas e Info */}
                         <div className="lg:col-span-1 space-y-4">
                             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
                                 <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Resumen Técnico</h4>
@@ -432,12 +432,9 @@ const Laboratorios = () => {
                             </button>
                         </div>
 
-                        {/* Mapa del Laboratorio */}
                         <div className="lg:col-span-3">
                             <div className="bg-[#fcfdfe] p-8 md:p-12 rounded-[3.5rem] border border-slate-200 shadow-xl relative overflow-hidden min-h-[600px]">
-                                {/* Blueprint Grid Lines */}
                                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(#4f46e5 1px, transparent 1px), linear-gradient(90deg, #4f46e5 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
-
                                 <div className="relative z-10">
                                     <div className="flex justify-between items-center mb-12">
                                         <h3 className="text-xl font-black text-slate-700 tracking-tighter uppercase italic flex items-center">
@@ -448,12 +445,10 @@ const Laboratorios = () => {
                                         </div>
                                     </div>
 
-                                    {/* Architectural Header (Pantalla/Profesor) */}
                                     <div className="flex flex-col items-center mb-16">
                                         <div className="w-1/2 h-5 bg-slate-900 rounded-b-2xl flex items-center justify-center shadow-lg relative">
                                             <span className="text-[8px] font-black text-indigo-400 uppercase tracking-[0.6em] font-mono">PANTALLA</span>
                                         </div>
-
                                         <div className="mt-8 flex flex-col items-center">
                                             <div className="w-32 h-16 bg-white border-2 border-slate-200 rounded-[1.5rem] shadow-sm flex flex-col items-center justify-center">
                                                 <div className="w-12 h-6 bg-slate-50 flex items-center justify-center rounded-lg border border-slate-100 mb-0.5">
@@ -464,7 +459,6 @@ const Laboratorios = () => {
                                         </div>
                                     </div>
 
-                                    {/* Blueprint Grid Body */}
                                     <div className="grid grid-cols-[30px_1fr_60px_1fr] gap-4 max-w-4xl mx-auto">
                                         <div className="flex flex-col justify-around py-2 items-center text-slate-200 text-xl font-black font-mono">
                                             {Array.from(new Set(estaciones.map(e => e.nombre[0]))).sort().map(rowLetter => (
@@ -472,7 +466,6 @@ const Laboratorios = () => {
                                             ))}
                                         </div>
 
-                                        {/* Left Side */}
                                         <div className={`grid gap-4`} style={{ gridTemplateColumns: `repeat(${Math.ceil((selectedLab.equipos_por_fila || 4) / 2)}, minmax(0, 1fr))` }}>
                                             {Array.from(new Set(estaciones.map(e => e.fila))).sort((a, b) => a - b).map(rowIdx => (
                                                 Array.from({ length: Math.ceil((selectedLab.equipos_por_fila || 4) / 2) }, (_, i) => i + 1).map(colIdx => {
@@ -484,12 +477,10 @@ const Laboratorios = () => {
                                             ))}
                                         </div>
 
-                                        {/* Central Pasillo */}
                                         <div className="flex flex-col items-center py-4 relative opacity-10">
                                             <div className="absolute inset-y-0 w-px border-l-2 border-slate-300 border-dashed"></div>
                                         </div>
 
-                                        {/* Right Side */}
                                         <div className={`grid gap-4`} style={{ gridTemplateColumns: `repeat(${Math.floor((selectedLab.equipos_por_fila || 4) / 2)}, minmax(0, 1fr))` }}>
                                             {Array.from(new Set(estaciones.map(e => e.fila))).sort((a, b) => a - b).map(rowIdx => (
                                                 Array.from({ length: Math.floor((selectedLab.equipos_por_fila || 4) / 2) }, (_, i) => i + 1 + Math.ceil((selectedLab.equipos_por_fila || 4) / 2)).map(colIdx => {
@@ -519,7 +510,7 @@ const Laboratorios = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {laboratorios.map((lab) => (
+                    {filteredLaboratorios.map((lab) => (
                         <div
                             key={lab.id_laboratorio}
                             onClick={() => handleSelectLab(lab)}
@@ -549,6 +540,13 @@ const Laboratorios = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {filteredLaboratorios.length === 0 && !loading && !selectedLab && (
+                <div className="py-20 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100">
+                    <Search className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                    <h3 className="text-xl font-black text-slate-300 uppercase tracking-widest">No se encontraron laboratorios</h3>
                 </div>
             )}
 
@@ -676,7 +674,6 @@ const Laboratorios = () => {
                 </div>
             )}
 
-            {/* Modal de Asignación de Equipos a Estación */}
             {showAssignmentModal && selectedEstacion && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
                     <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl animate-scaleIn border border-white/20">
@@ -691,7 +688,6 @@ const Laboratorios = () => {
                         </div>
 
                         <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
-                            {/* PC Assignment */}
                             <div className="space-y-4">
                                 <label className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center">
                                     <Cpu className="w-4 h-4 mr-2 text-indigo-500" /> Computadora Principal
@@ -747,7 +743,6 @@ const Laboratorios = () => {
                                 )}
                             </div>
 
-                            {/* Peripherals Assignment */}
                             <div className="space-y-4">
                                 <label className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center">
                                     <Monitor className="w-4 h-4 mr-2 text-indigo-500" /> Periféricos y Mobiliario
@@ -817,7 +812,6 @@ const Laboratorios = () => {
                     </div>
                 </div>
             )}
-            {/* Toxix Notifications */}
             <div className="fixed bottom-8 right-8 z-[200]">
                 <AnimatePresence>
                     {notification && (

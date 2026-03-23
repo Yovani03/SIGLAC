@@ -313,3 +313,25 @@ class Asistencia(models.Model):
 
     class Meta:
         db_table = 'asistencias'
+
+class Notificacion(models.Model):
+    TIPOS = [
+        ('INFO', 'Información'),
+        ('SUCCESS', 'Éxito'),
+        ('WARNING', 'Advertencia'),
+        ('ERROR', 'Error'),
+    ]
+    id_notificacion = models.AutoField(primary_key=True)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='notificaciones', db_column='id_usuario')
+    mensaje = models.TextField()
+    tipo = models.CharField(max_length=20, choices=TIPOS, default='INFO')
+    leida = models.BooleanField(default=False)
+    fecha = models.DateTimeField(auto_now_add=True)
+    link = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        db_table = 'notificaciones'
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"Notif to {self.usuario.username}: {self.mensaje[:30]}..."

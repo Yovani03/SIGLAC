@@ -11,7 +11,7 @@ from .views import (
     HorarioLaboratorioViewSet,
     SoftwareViewSet, ConfiguracionSistemaViewSet, ReporteFalloViewSet,
     BitacoraViewSet, AsignacionEquipoViewSet, ReservacionViewSet, AsistenciaViewSet, 
-    MantenimientoViewSet, dashboard_stats, reportes_estadisticos, prueba_conexion
+    MantenimientoViewSet, NotificacionViewSet, dashboard_stats, reportes_estadisticos, prueba_conexion
 )
 
 router = DefaultRouter()
@@ -33,6 +33,7 @@ router.register(r'asignaciones', AsignacionEquipoViewSet, basename='asignacion')
 router.register(r'reservaciones', ReservacionViewSet, basename='reservacion')
 router.register(r'asistencias', AsistenciaViewSet, basename='asistencia')
 router.register(r'mantenimientos', MantenimientoViewSet, basename='mantenimiento')
+router.register(r'notificaciones', NotificacionViewSet, basename='notificacion')
 
 urlpatterns = [
     path('', include(router.urls)),
