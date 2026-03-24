@@ -37,7 +37,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
     
     def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'change_password']:
+        if self.action in ['list', 'retrieve', 'change_password', 'partial_update', 'update']:
             return [permissions.IsAuthenticated()]
         return [IsAdminUserRole()]
 
@@ -51,6 +51,13 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
+        
+        # Security: Only admin or the user themselves can update their profile
+        rol_nombre = request.user.rol.nombre_rol.lower() if request.user.rol else ''
+        is_admin = rol_nombre in ['admin', 'administrador']
+        if not is_admin and instance.id != request.user.id:
+            return Response({'error': 'No tienes permiso para modificar este perfil.'}, status=status.HTTP_403_FORBIDDEN)
+            
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         if not serializer.is_valid():
             print("VALIDATION ERRORS:", serializer.errors)

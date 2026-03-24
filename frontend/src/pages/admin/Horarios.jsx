@@ -266,7 +266,7 @@ const Horarios = () => {
                     onClick={() => setActiveTab('gestion')}
                     className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'gestion' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                    Gestión de Horarios Fijos
+                    Gestión de Horarios
                 </button>
             </div>
 
@@ -379,7 +379,7 @@ const Horarios = () => {
                     </div>
                 </div>
             ) : (
-                /* Gestión de Horarios Fijos */
+                /* Gestión de Horarios */
                 <div className="space-y-6 animate-fadeIn">
                     {!selectedLabId ? (
                         /* Paso 1: Selección de Laboratorio */

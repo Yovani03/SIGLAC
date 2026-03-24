@@ -9,6 +9,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['nombre_rol'] = user.rol.nombre_rol if user.rol else 'Estudiante'
         token['nombre_completo'] = f"{user.nombre} {user.apellido_paterno} {user.apellido_materno or ''}".strip()
         token['email'] = user.correo_institucional
+        token['avatar'] = user.avatar
         return token
 
 class CustomTokenObtainPairView(TokenObtainPairView):

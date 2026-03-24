@@ -17,7 +17,8 @@ export const AuthProvider = ({ children }) => {
                     id: decoded.user_id,
                     username: decoded.username,
                     nombre_completo: decoded.nombre_completo,
-                    rol: decoded.nombre_rol?.toLowerCase() || 'estudiante'
+                    rol: decoded.nombre_rol?.toLowerCase() || 'estudiante',
+                    avatar: decoded.avatar || 'avatar1'
                 });
             } catch (error) {
                 localStorage.removeItem('access_token');
@@ -39,7 +40,8 @@ export const AuthProvider = ({ children }) => {
             id: decoded.user_id,
             username: decoded.username,
             nombre_completo: decoded.nombre_completo,
-            rol: decoded.nombre_rol?.toLowerCase() || 'estudiante'
+            rol: decoded.nombre_rol?.toLowerCase() || 'estudiante',
+            avatar: decoded.avatar || 'avatar1'
         };
         setUser(userData);
         return userData;
@@ -51,8 +53,12 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
+    const updateUser = (data) => {
+        setUser(prev => ({ ...prev, ...data }));
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

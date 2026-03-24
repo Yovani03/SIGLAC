@@ -25,6 +25,7 @@ class Usuario(AbstractUser):
     telefono = models.CharField(max_length=20, blank=True, null=True)
     rol = models.ForeignKey(Rol, on_delete=models.RESTRICT, db_column='id_rol', null=True)
     activo = models.BooleanField(default=True)
+    avatar = models.CharField(max_length=255, blank=True, null=True, default='avatar1')
     fecha_registro = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD = 'username'

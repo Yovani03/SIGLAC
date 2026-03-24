@@ -87,19 +87,32 @@ const DocenteDashboardLayout = ({ children }) => {
                 </nav>
 
                 <div className="p-6 mt-auto">
-                    <div className={`p-4 rounded-3xl bg-slate-50 border border-slate-100 flex items-center ${!sidebarOpen && 'justify-center p-2'}`}>
-                        <div className="w-10 h-10 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 border border-indigo-200 shadow-sm overflow-hidden flex-shrink-0">
+                    <Link
+                        to="/docente/perfil"
+                        className={`p-4 rounded-3xl bg-slate-50 border border-slate-100 flex items-center hover:bg-white hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100 transition-all group ${!sidebarOpen && 'justify-center p-2'}`}
+                    >
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm overflow-hidden flex-shrink-0 transition-colors
+                            ${user?.avatar === 'avatar2' ? 'bg-emerald-100 text-emerald-600 border-emerald-200' :
+                              user?.avatar === 'avatar3' ? 'bg-rose-100 text-rose-600 border-rose-200' :
+                              user?.avatar === 'avatar4' ? 'bg-amber-100 text-amber-600 border-amber-200' :
+                              user?.avatar === 'avatar5' ? 'bg-sky-100 text-sky-600 border-sky-200' :
+                              user?.avatar === 'avatar6' ? 'bg-violet-100 text-violet-600 border-violet-200' :
+                              user?.avatar === 'avatar7' ? 'bg-fuchsia-100 text-fuchsia-600 border-fuchsia-200' :
+                              user?.avatar === 'avatar8' ? 'bg-orange-100 text-orange-600 border-orange-200' :
+                              'bg-indigo-100 text-indigo-600 border-indigo-200'}
+                        `}>
                             <User className="w-5 h-5" />
                         </div>
                         {sidebarOpen && (
                             <div className="ml-3 overflow-hidden">
-                                <p className="text-sm font-bold text-slate-800 truncate" title={user?.username}>
+                                <p className="text-sm font-bold text-slate-800 truncate group-hover:text-indigo-600 transition-colors" title={user?.username}>
                                     {user?.nombre || user?.username}
                                 </p>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">DOCENTE</p>
                             </div>
                         )}
-                    </div>
+                        {sidebarOpen && <ChevronRight className="w-4 h-4 ml-auto text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                    </Link>
                     <button
                         onClick={handleLogout}
                         className={`w-full flex items-center mt-4 px-4 py-3 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all font-bold text-sm ${!sidebarOpen && 'justify-center'}`}

@@ -21,7 +21,8 @@ import DocenteDashboard from './pages/docente/DocenteDashboard';
 import Reservaciones from './pages/docente/Reservaciones';
 import LaboratoriosDocente from './pages/docente/LaboratoriosDocente';
 import ReportesDocente from './pages/docente/ReportesDocente';
-import Perfil from './pages/docente/Perfil';
+import UserProfile from './pages/UserProfile';
+
 import EquiposDocente from './pages/docente/EquiposDocente';
 import HorariosDocente from './pages/docente/HorariosDocente';
 import BitacorasDocente from './pages/docente/BitacorasDocente';
@@ -70,6 +71,8 @@ function App() {
               <Route path="/admin/horarios" element={<AdminDashboardLayout><Horarios /></AdminDashboardLayout>} />
               <Route path="/admin/bitacoras" element={<AdminDashboardLayout><Bitacoras /></AdminDashboardLayout>} />
               <Route path="/admin/reportes" element={<AdminDashboardLayout><Reportes /></AdminDashboardLayout>} />
+              <Route path="/admin/perfil" element={<AdminDashboardLayout><UserProfile /></AdminDashboardLayout>} />
+
             </Route>
 
             {/* Docente Routes */}
@@ -78,7 +81,8 @@ function App() {
               {/* <Route path="/docente/reservaciones" element={<DocenteDashboardLayout><Reservaciones /></DocenteDashboardLayout>} /> */}
               {/* <Route path="/docente/laboratorios" element={<DocenteDashboardLayout><LaboratoriosDocente /></DocenteDashboardLayout>} /> */}
               <Route path="/docente/reportes" element={<DocenteDashboardLayout><ReportesDocente /></DocenteDashboardLayout>} />
-              <Route path="/docente/perfil" element={<DocenteDashboardLayout><Perfil /></DocenteDashboardLayout>} />
+              <Route path="/docente/perfil" element={<DocenteDashboardLayout><UserProfile /></DocenteDashboardLayout>} />
+
               <Route path="/docente/equipos" element={<DocenteDashboardLayout><EquiposDocente /></DocenteDashboardLayout>} />
               <Route path="/docente/horarios" element={<DocenteDashboardLayout><HorariosDocente /></DocenteDashboardLayout>} />
               <Route path="/docente/bitacoras" element={<DocenteDashboardLayout><BitacorasDocente /></DocenteDashboardLayout>} />
@@ -92,6 +96,8 @@ function App() {
               <Route path="/tecnico/equipos" element={<TecnicoDashboardLayout><EquiposTecnico /></TecnicoDashboardLayout>} />
               <Route path="/tecnico/laboratorios" element={<TecnicoDashboardLayout><LaboratoriosTecnico /></TecnicoDashboardLayout>} />
               <Route path="/tecnico/reportes" element={<TecnicoDashboardLayout><ReportesTecnico /></TecnicoDashboardLayout>} />
+              <Route path="/tecnico/perfil" element={<TecnicoDashboardLayout><UserProfile /></TecnicoDashboardLayout>} />
+
             </Route>
 
             {/* Other roles specific routes (placeholders) */}
